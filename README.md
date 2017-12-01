@@ -10,8 +10,9 @@ It uses OpenStreetMap data to calculate its sprawling indices, divided in Access
 
 * Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2017. "[LUM_OSM: une plateforme pour l'évaluation de la mixité urbaine à partir de données participatives](https://hal.inria.fr/hal-01548341)." GAST Workshop, Conférence Extraction et Gestion de Connaissances (EGC 2017).
 
-* Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2017. "[Calculating spatial urban sprawl indices using
-open data](https://hal.inria.fr/hal-01535469)." 15th International Conference on Computers in Urban Planning and Urban Management.
+* Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2017. "[Calculating spatial urban sprawl indices using open data](https://hal.inria.fr/hal-01535469)." 15th International Conference on Computers in Urban Planning and Urban Management.
+
+NOTE: The implementation for the previous publications can be found at version 1.0
 
 ## Dependencies
 
@@ -19,47 +20,53 @@ urbansprawl works with Python 2+3.
 
 - Python dependencies:
 ```sh
-osmnx utm scipy statsmodels h5py
+osmnx scikit-learn
 ```
 
 * Using anaconda:
 ```sh
 conda update -c conda-forge --all
-conda install -c conda-forge osmnx utm scipy statsmodels h5py
+conda install -c conda-forge osmnx scikit-learn
 ```
 
 ## Example
 
-PostGIS-enabled PostgreSQL databases are used in this framework (refer to [OSM2PGSQL tools](https://mapzen.com/data/metro-extracts/)):
+OpenStreetMap is retrieved using the Overpass API.
 
-Results are depicted for the city of **Grenoble, France**:
+Results are depicted for the city of **Lyon, France**:
 
-- Locations and densities of residential and activity land usages
+- Locations of residential and activity land uses are retrieved
 
-<img src="examples/images/Grenoble_Activity_points.png" width="550">
-<img src="examples/images/Grenoble_Activity_densities.png" width="550">
-<img src="examples/images/Grenoble_Residential_points.png" width="550">
-<img src="examples/images/Grenoble_Residential_densities.png" width="550">
+* Activity uses:
 
-- Street network
+<img src="examples/images/Lyon_activities.png" width="550" height="500">
 
-<img src="examples/images/Grenoble.png" width="550">
+* Residential uses:
 
-- Buildings
+<img src="examples/images/Lyon_residential.png" width="550" height="500">
 
-<img src="examples/images/Grenoble_Buildings.png" width="550">
+- Densities for each land use are estimated:
+
+<img src="examples/images/Lyon_densities.png" width="1200" height="500">
+
+* Activity uses can be further classified:
+
+<img src="examples/images/Lyon_activities_densities.png" width="1200" height="500">
+
+- Street network:
+
+<img src="examples/images/Lyon_graph.png" width="550" height="500">
 
 **Sprawling indices:**
 
-- Land use mix indices
+- Land use mix indices:
 
-<img src="examples/images/Grenoble_Land_use_mix.png" width="550">
-<img src="examples/images/Grenoble_Bubble_land_use_mix.png" width="550">
+<img src="examples/images/Lyon_Landusemix.png" width="550" height="500">
 
-- Accessibility indices
+- Accessibility indices:
 
-<img src="examples/images/Grenoble_Accessibility.png" width="550">
+<img src="examples/images/Lyon_Accessibility.png" width="550" height="500">
 
-- Dispersion indices
+- Dispersion indices:
 
-<img src="examples/images/Grenoble_Dispersion.png" width="550">
+<img src="examples/images/Lyon_Dispersion.png" width="550" height="500">
