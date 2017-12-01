@@ -31,7 +31,7 @@ conda install -c conda-forge osmnx scikit-learn
 
 ## Example
 
-OpenStreetMap is retrieved using the Overpass API.
+OpenStreetMap data is retrieved using the Overpass API.
 
 Results are depicted for the city of **Lyon, France**:
 
