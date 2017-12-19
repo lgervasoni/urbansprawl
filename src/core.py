@@ -11,7 +11,7 @@ import numpy as np
 
 from osmnx.utils import log
 
-from .parameters import get_dataframes_filenames
+from .parameters import get_dataframes_filenames, files
 
 from .osm.osm_overpass import create_landuse_gdf, create_pois_gdf, create_building_parts_gdf, create_buildings_gdf_from_input, retrieve_route_graph
 from .osm.osm_tags import columns_osm_tag, height_tags, building_parts_to_filter
@@ -136,7 +136,7 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	Returns
 	----------
 	[ gpd.GeoDataFrame, gpd.GeoDataFrame, gpd.GeoDataFrame ]
-		returns the output geo dataframe containing all buildings and points associated to a residential or activity land usage
+		returns the output geo dataframe containing all buildings, building parts, and points associated to a residential or activity land usage
 	
 	"""
 	log("OSM data requested for city: " + str(city_ref_file) )
@@ -432,6 +432,10 @@ def process_spatial_indices(city_ref_file=None, region_args={"polygon":None, "pl
 		df_osm_built, df_osm_building_parts, df_osm_pois = get_processed_osm_data(city_ref_file=city_ref_file, region_args=region_args, kwargs=process_osm_args)
 		# Get route graph
 		G = get_route_graph(city_ref_file)
+
+		if (not ( indices_computation.get("accessibility") or indices_computation.get("landusemix") or indices_computation.get("dispersion") ) ):
+			log("Not computing any spatial indices")
+			return None
 		
 		# Get indices grid
 		df_indices = get_indices_grid(df_osm_built, df_osm_building_parts, df_osm_pois, grid_step)
@@ -447,3 +451,33 @@ def process_spatial_indices(city_ref_file=None, region_args={"polygon":None, "pl
 	except Exception as e:
 		log("Could not compute the spatial indices. An exception occured: " + str(e))
 		return None
+
+
+def perform_population_downscaling(city_ref_file=None, kwargs={"method":"proportional"} ):
+	"""
+	TODO ...
+
+	Returns
+	----------
+	gpd.GeoDataFrame
+        returns INSEE population data with the estimated population at each square, and the computed absolute and relative errors
+	"""
+	# Get buildings
+	df_osm_built, _, _ = get_processed_osm_data(city_ref)
+
+	# Extract population data: INSEE data
+	df_insee = get_extract_population_data(city_ref=city_ref, data_source="insee", pop_shapefile=files["insee_shapefile"], pop_data_file=["insee_data_file"], df_osm_built=df_osm_built)
+
+	# Get aggregated population data (at GPW's resolution)
+	df_insee_square_group = get_aggregated_squares(df_insee)
+
+	if (kwargs["method"] == "proportional"):
+		# Perform downscaling estimation
+		proportional_population_downscaling(df_osm_built, df_insee_square_group)
+	else:
+		assert(False)
+
+	# Validate estimation: Calculate absolute and relative errors within each population grid square
+	population_downscaling_validation(df_osm_built, df_insee)
+
+	return df_insee

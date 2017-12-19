@@ -2,7 +2,7 @@
 
 The urbansprawl project provides an open framework to assess the urban sprawl phenomenon.
 It uses OpenStreetMap data to calculate its sprawling indices, divided in Accessibility, Land use mix, and Dispersion.
-
+Additionally, a method to perform dissagregated population estimates at building level using open data is presented.
 
 **For more details, refer to:**
 
@@ -11,6 +11,9 @@ It uses OpenStreetMap data to calculate its sprawling indices, divided in Access
 * Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2017. "[LUM_OSM: une plateforme pour l'évaluation de la mixité urbaine à partir de données participatives](https://hal.inria.fr/hal-01548341)." GAST Workshop, Conférence Extraction et Gestion de Connaissances (EGC 2017).
 
 * Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2017. "[Calculating spatial urban sprawl indices using open data](https://hal.inria.fr/hal-01535469)." 15th International Conference on Computers in Urban Planning and Urban Management.
+
+* Gervasoni Luciano, Fenet Serge, and Sturm Peter. 2018. "[Calculating spatial urban sprawl indices using open data](https://hal.inria.fr/hal-01667975)." Conférence Internationale sur l'Extraction et la Gestion des Connaissances (EGC 2018).
+
 
 NOTE: The implementation for the previous publications can be found at version 1.0
 
@@ -29,7 +32,7 @@ conda update -c conda-forge --all
 conda install -c conda-forge osmnx scikit-learn
 ```
 
-## Example
+## Example: Urban sprawl
 
 OpenStreetMap data is retrieved using the Overpass API.
 
@@ -70,3 +73,17 @@ Results are depicted for the city of **Lyon, France**:
 - Dispersion indices:
 
 <img src="examples/images/Lyon_Dispersion.png" width="550" height="500">
+
+## Example: Population densities
+
+Gridded population data is used in the context of population densities downscaling.
+
+Population count images are depicted for the city of **Grenoble, France**:
+
+- Population densities (INSEE census data):
+
+<img src="examples/images/Grenoble_INSEE.png" width="550" height="500">
+
+- Population densities (INSEE census data, Gridded Population World resolution):
+
+<img src="examples/images/Grenoble_GPW_simulation.png" width="550" height="500">

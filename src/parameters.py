@@ -9,6 +9,15 @@ images_folder = 'images'
 geo_format = 'geojson' # 'shp'
 geo_driver = 'GeoJSON' # 'ESRI Shapefile'
 
+### Files referring to population gridded data
+files = {}
+# Geometries for INSEE population data
+files["insee_shapefile"] = "../200m-carreaux-metropole/carr_pop4326.shp"
+# dbf file with attributes
+files["insee_data_file"] = "../200m-carreaux-metropole/car_m.dbf"
+# Worlde-wide gridded population data: Converted to shapefile (EPSG 4326)
+files["gpw_population_world"] = "../gpwv4/gpw-v4.shp"
+
 
 def get_dataframes_filenames(city_ref_file):
 	"""
@@ -55,3 +64,27 @@ def get_population_extract_filename(city_ref_file, data_source):
 	if not(os.path.isdir(storage_folder + "/" + data_source)): 
 		os.makedirs(storage_folder + "/" + data_source)
 	return storage_folder + "/" + data_source + "/" + city_ref_file + "_population.shp"
+
+def get_population_urban_features_filename(city_ref_file, data_source):
+	"""
+	Get population urban features extract filename for input city
+	Force GeoJSON format: Shapefiles truncate column names
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+	data_source : string
+		desired population data source
+
+	Returns
+	----------
+	string
+		returns the population extract filename
+	
+	"""
+	# Folder exists?
+	import os
+	if not(os.path.isdir(storage_folder + "/" + data_source)): 
+		os.makedirs(storage_folder + "/" + data_source)
+	return storage_folder + "/" + data_source + "/" + city_ref_file + "_urban_features." + geo_format
