@@ -16,8 +16,6 @@ Additionally, it provides the tools to perform dissagregated population estimate
 * Gervasoni Luciano, Fenet Serge, and Sturm Peter. 2018. "[Une méthode pour l’estimation désagrégée de données de population à l’aide de données ouvertes](https://hal.inria.fr/hal-01667975)." Conférence Internationale sur l'Extraction et la Gestion des Connaissances (EGC 2018).
 
 
-NOTE: The implementation for the previous publications can be found at version 1.0
-
 ## Dependencies
 
 urbansprawl works with Python 2+3.
