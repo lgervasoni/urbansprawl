@@ -2,7 +2,8 @@
 
 The urbansprawl project provides an open framework to assess the urban sprawl phenomenon.
 It uses OpenStreetMap data to calculate its sprawling indices, divided in Accessibility, Land use mix, and Dispersion.
-Additionally, a method to perform dissagregated population estimates at building level using open data is presented.
+
+Additionally, it provides the tools to perform dissagregated population estimates at building level using open data.
 
 **For more details, refer to:**
 
@@ -12,7 +13,7 @@ Additionally, a method to perform dissagregated population estimates at building
 
 * Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2017. "[Calculating spatial urban sprawl indices using open data](https://hal.inria.fr/hal-01535469)." 15th International Conference on Computers in Urban Planning and Urban Management.
 
-* Gervasoni Luciano, Fenet Serge, and Sturm Peter. 2018. "[Calculating spatial urban sprawl indices using open data](https://hal.inria.fr/hal-01667975)." Conférence Internationale sur l'Extraction et la Gestion des Connaissances (EGC 2018).
+* Gervasoni Luciano, Fenet Serge, and Sturm Peter. 2018. "[Une méthode pour l’estimation désagrégée de données de population à l’aide de données ouvertes](https://hal.inria.fr/hal-01667975)." Conférence Internationale sur l'Extraction et la Gestion des Connaissances (EGC 2018).
 
 
 NOTE: The implementation for the previous publications can be found at version 1.0
