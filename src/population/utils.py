@@ -1,3 +1,7 @@
+###################################################################################################
+# Repository: https://github.com/lgervasoni/urbansprawl
+###################################################################################################
+
 import geopandas as gpd
 import pandas as pd
 import osmnx as ox

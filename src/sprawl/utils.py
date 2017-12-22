@@ -1,5 +1,5 @@
 ###################################################################################################
-# Repository: https://gitlab.inria.fr/gervason/urbansprawl
+# Repository: https://github.com/lgervasoni/urbansprawl
 ###################################################################################################
 
 import numpy as np

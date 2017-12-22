@@ -39,13 +39,16 @@ Results are depicted for the city of **Lyon, France**:
 
 - Locations of residential and activity land uses are retrieved
 
-* Activity uses:
+* Buildings with defined land use:
+	* Blue: Residential use
+	* Red: Activity use
+	* Green: Mixed use
 
-<img src="examples/images/Lyon_activities.png" width="550" height="500">
+<img src="examples/images/Lyon_Buildings.png" width="550" height="500">
 
-* Residential uses:
+* Points of interest (POIs) with defined land use:
 
-<img src="examples/images/Lyon_residential.png" width="550" height="500">
+<img src="examples/images/Lyon_POIs.png" width="550" height="500">
 
 - Densities for each land use are estimated:
 

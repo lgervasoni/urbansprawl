@@ -1,3 +1,7 @@
+###################################################################################################
+# Repository: https://github.com/lgervasoni/urbansprawl
+###################################################################################################
+
 from shapely.geometry import Polygon, GeometryCollection
 import geopandas as gpd
 import pandas as pd
