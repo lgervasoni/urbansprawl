@@ -1,5 +1,6 @@
 ###################################################################################################
 # Repository: https://github.com/lgervasoni/urbansprawl
+# MIT License
 ###################################################################################################
 
 from shapely.geometry import Polygon, GeometryCollection
