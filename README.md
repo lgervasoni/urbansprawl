@@ -113,7 +113,7 @@ Results are depicted for the city of **Lyon, France**:
 **Sprawling indices:**
 
 
-- Land use mix indices: Degree of co-occurence of differing land usages within 'walkable' distances.
+- Land use mix indices: Degree of co-occurence of differing land uses within 'walkable' distances.
 
 <img src="examples/images/Lyon_Landusemix.png" width="550" height="500">
 
@@ -127,10 +127,17 @@ Results are depicted for the city of **Lyon, France**:
 
 <img src="examples/images/Lyon_Accessibility.png" width="550" height="500">
 
+<figure>
+<img src="examples/images/Lyon_Accessibility.png" width="550" height="500">
+<figcaption>The discourse logo</figcaption>
+</figure>
+
+![Alt text](examples/images/Lyon_Accessibility.png?raw=true "Title")
+
 
 - Dispersion indices: Denotes the degree of scatteredness of the built-up area.
 
-* "A landscape suffers from urban sprawl if it is permeated by urban development or solitary buildings [...]. The more area built over and the more dispersed the built-up area, [...] the higher the degree of urban sprawl" [(Jaeger and Schwick 2014)](http://www.sciencedirect.com/science/article/pii/S1470160X13004858)
+	* "A landscape suffers from urban sprawl if it is permeated by urban development or solitary buildings [...]. The more area built over and the more dispersed the built-up area, [...] the higher the degree of urban sprawl" [(Jaeger and Schwick 2014)](http://www.sciencedirect.com/science/article/pii/S1470160X13004858)
 
 <img src="examples/images/Lyon_Dispersion.png" width="550" height="500">
 
