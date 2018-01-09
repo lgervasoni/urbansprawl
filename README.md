@@ -13,7 +13,7 @@ Our goal is to estimate the number of people living at the fine level of individ
 
 Urban sprawl has been related to numerous negative environmental and socioeconomic impacts. 
 Meanwhile, the number of people living in cities has been increasing considerably since 1950, from 746 million to 3.9 billion in 2014. More than 66% of the world's population are projected to live in urban areas by 2050, against 30% in 1950 <cite>[(United Nations)][1]</cite>.
-The fact that urban areas have been growing at alarming rates urges for assessing sprawl towards sustainable development.
+The fact that urban areas have been growing at increasing rates urges for assessing urban sprawl towards sustainable development.
 However, sprawl is an elusive term and different approaches to measure it have lead to heterogeneous results. 
 
 [1]:https://esa.un.org/unpd/wup/publications/files/wup2014-highlights.pdf
