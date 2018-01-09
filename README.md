@@ -92,31 +92,30 @@ Results are depicted for the city of **Lyon, France**:
 	* Red: Activity use
 	* Green: Mixed use
 
-<img src="examples/images/Lyon_Buildings.png" width="550" height="500">
+![Buildings](examples/images/Lyon_Buildings.png?raw=true)
 
 * Points of interest (POIs) with defined land use:
 
-<img src="examples/images/Lyon_POIs.png" width="550" height="500">
+![POI](examples/images/Lyon_POIs.png?raw=true)
 
 - Densities for each land use are estimated:
 
-<img src="examples/images/Lyon_densities.png" width="1200" height="500">
+![Densit](examples/images/Lyon_densities.png?raw=true)
 
 * Activity uses can be further classified:
 
-<img src="examples/images/Lyon_activities_densities.png" width="1200" height="500">
+![Activ](examples/images/Lyon_activities_densities.png?raw=true)
 
 - Street network:
 
-<img src="examples/images/Lyon_graph.png" width="550" height="500">
+![SN](examples/images/Lyon_graph.png?raw=true)
 
 **Sprawling indices:**
 
 
 - Land use mix indices: Degree of co-occurence of differing land uses within 'walkable' distances.
 
-<img src="examples/images/Lyon_Landusemix.png" width="550" height="500">
-
+![LUM](examples/images/Lyon_Landusemix.png?raw=true)
 
 - Accessibility indices: Denotes the degree of accessibility to differing land uses (from residential to activity uses).
 
@@ -124,22 +123,13 @@ Results are depicted for the city of **Lyon, France**:
 
 	* Fixed distance: Denotes the cumulative number of activity opportunities found within a certain travel distance
 
-
-<img src="examples/images/Lyon_Accessibility.png" width="550" height="500">
-
-<figure>
-<img src="examples/images/Lyon_Accessibility.png" width="550" height="500">
-<figcaption>The discourse logo</figcaption>
-</figure>
-
-![Alt text](examples/images/Lyon_Accessibility.png?raw=true "Title")
-
+![Acc](examples/images/Lyon_Accessibility.png?raw=true)
 
 - Dispersion indices: Denotes the degree of scatteredness of the built-up area.
 
 	* "A landscape suffers from urban sprawl if it is permeated by urban development or solitary buildings [...]. The more area built over and the more dispersed the built-up area, [...] the higher the degree of urban sprawl" [(Jaeger and Schwick 2014)](http://www.sciencedirect.com/science/article/pii/S1470160X13004858)
 
-<img src="examples/images/Lyon_Dispersion.png" width="550" height="500">
+![Disp](examples/images/Lyon_Dispersion.png?raw=true)
 
 ## Example: Population densities
 
@@ -155,9 +145,9 @@ Population count images are depicted for the city of **Grenoble, France**:
 
 - Population densities (INSEE census data):
 
-<img src="examples/images/Grenoble_INSEE.png" width="550" height="500">
+![INSEE](examples/images/Grenoble_INSEE.png?raw=true)
 
 
 - Population densities (INSEE census data, Gridded Population World resolution):
 
-<img src="examples/images/Grenoble_GPW_simulation.png" width="550" height="500">
+![GPW](examples/images/Grenoble_GPW_simulation.png?raw=true)
