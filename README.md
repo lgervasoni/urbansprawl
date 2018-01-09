@@ -100,6 +100,8 @@ Results are depicted for the city of **Lyon, France**:
 
 - Densities for each land use are estimated:
 
+	* Probability density function estimated using Kernel Density Estimation (KDE)
+
 ![Densit](examples/images/Lyon_densities.png?raw=true)
 
 * Activity uses can be further classified using the OSM wiki:
@@ -114,7 +116,6 @@ Results are depicted for the city of **Lyon, France**:
 ![SN](examples/images/Lyon_graph.png?raw=true)
 
 **Sprawling indices:**
-
 
 - Land use mix indices: Degree of co-occurence of differing land uses within 'walkable' distances.
 
