@@ -12,7 +12,7 @@ Our goal is to estimate the number of people living at the fine level of individ
 **Motivation:**
 
 Urban sprawl has been related to numerous negative environmental and socioeconomic impacts. 
-Meanwhile, the number of people living in cities has been increasing considerably since 1950, from 746 million to 3.9 billion in 2014. More than 66% of the world's population are projected to live in urban areas by 2050, against 30% in 1950 <cite>[[United Nations]][1]</cite>.
+Meanwhile, the number of people living in cities has been increasing considerably since 1950, from 746 million to 3.9 billion in 2014. More than 66% of the world's population are projected to live in urban areas by 2050, against 30% in 1950 <cite>[(United Nations)][1]</cite>.
 The fact that urban areas have been growing at alarming rates urges for assessing sprawl towards sustainable development.
 However, sprawl is an elusive term and different approaches to measure it have lead to heterogeneous results. 
 
@@ -112,15 +112,25 @@ Results are depicted for the city of **Lyon, France**:
 
 **Sprawling indices:**
 
-- Land use mix indices:
+
+- Land use mix indices: Degree of co-occurence of differing land usages within 'walkable' distances.
 
 <img src="examples/images/Lyon_Landusemix.png" width="550" height="500">
 
-- Accessibility indices:
+
+- Accessibility indices: Denotes the degree of accessibility to differing land uses (from residential to activity uses).
+
+	* Fixed activities: Represents the distance needed to travel in order to reach a certain number of activity land uses
+
+	* Fixed distance: Denotes the cumulative number of activity opportunities found within a certain travel distance
+
 
 <img src="examples/images/Lyon_Accessibility.png" width="550" height="500">
 
-- Dispersion indices:
+
+- Dispersion indices: Denotes the degree of scatteredness of the built-up area.
+
+* "A landscape suffers from urban sprawl if it is permeated by urban development or solitary buildings [...]. The more area built over and the more dispersed the built-up area, [...] the higher the degree of urban sprawl" [(Jaeger and Schwick 2014)](http://www.sciencedirect.com/science/article/pii/S1470160X13004858)
 
 <img src="examples/images/Lyon_Dispersion.png" width="550" height="500">
 
@@ -139,6 +149,7 @@ Population count images are depicted for the city of **Grenoble, France**:
 - Population densities (INSEE census data):
 
 <img src="examples/images/Grenoble_INSEE.png" width="550" height="500">
+
 
 - Population densities (INSEE census data, Gridded Population World resolution):
 
