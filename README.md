@@ -1,9 +1,9 @@
 # Urbansprawl
 
 The urbansprawl project provides an open source framework for assessing urban sprawl using open data.
-It uses OpenStreetMap data to calculate its sprawling indices, divided in Accessibility, Land use mix, and Dispersion.
+It uses OpenStreetMap (OSM) data to calculate its sprawling indices, divided in Accessibility, Land use mix, and Dispersion.
 
-Locations of residential and activity units are used to measure mixed use development and built-up dispersion, whereas the street network is used to measure the accessibility between different land uses.
+Locations of residential and activity (e.g. shop, commerce, office, among others) units are used to measure mixed use development and built-up dispersion, whereas the street network is used to measure the accessibility between different land uses.
 The output consists of spatial indices, which can be easily integrated with GIS platforms.
 
 Additionally, a method to perform dissagregated population estimates at building level is provided.
@@ -102,7 +102,10 @@ Results are depicted for the city of **Lyon, France**:
 
 ![Densit](examples/images/Lyon_densities.png?raw=true)
 
-* Activity uses can be further classified:
+* Activity uses can be further classified using the OSM wiki:
+	* Leisure and amenity
+	* Shop
+	* Commercial and industrial
 
 ![Activ](examples/images/Lyon_activities_densities.png?raw=true)
 
