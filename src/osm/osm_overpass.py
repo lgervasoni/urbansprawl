@@ -1259,6 +1259,7 @@ def create_building_parts_gdf(date="", polygon=None, north=None, south=None, eas
 			# drop all invalid geometries
 			gdf = gdf[gdf['geometry'].is_valid]
 		except: # Empty data frame
+			# Create a one-row data frame with null information (avoid later Spatial-Join crash)
 			data = {"geometry":[Point(0,0)], "osm_id":[0], "building:part":["yes"], "height":[""]}
 			gdf = gpd.GeoDataFrame(data, crs={'init': 'epsg:4326'})
 
