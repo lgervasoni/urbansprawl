@@ -1255,7 +1255,11 @@ def create_building_parts_gdf(date="", polygon=None, north=None, south=None, eas
 	gdf.crs = {'init':'epsg:4326'}
 
 	if not retain_invalid:
-		# drop all invalid geometries
-		gdf = gdf[gdf['geometry'].is_valid]
+		try:
+			# drop all invalid geometries
+			gdf = gdf[gdf['geometry'].is_valid]
+		except: # Empty data frame
+			data = {"geometry":[Point(0,0)], "osm_id":[0], "building:part":["yes"], "height":[""]}
+			gdf = gpd.GeoDataFrame(data, crs={'init': 'epsg:4326'})
 
 	return gdf
