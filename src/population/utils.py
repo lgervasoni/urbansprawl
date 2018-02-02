@@ -74,7 +74,7 @@ def get_aggregated_squares(df_insee, step=1000.):
 
 def population_downscaling_validation(df_osm_built, df_insee):
 	"""
-	Validates the poplation downscaling estimation by means of aggregating the sum of buildings estimated population lying within each population square
+	Validates the population downscaling estimation by means of aggregating the sum of buildings estimated population lying within each population square
 	Allows to compare the real population count with the estimated population lying within each square
 	Updates new column 'pop_estimation' for each square in the population data frame
 
