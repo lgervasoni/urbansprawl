@@ -1081,8 +1081,17 @@ def create_pois_gdf(date="", polygon=None, north=None, south=None, east=None,
 	gdf.crs = {'init':'epsg:4326'}
 
 	if not retain_invalid:
-		# drop all invalid geometries
-		gdf = gdf[gdf['geometry'].is_valid]
+		try:
+			# drop all invalid geometries
+			gdf = gdf[gdf['geometry'].is_valid]
+		except: # Empty data frame
+			# Create a one-row data frame with null information (avoid later Spatial-Join crash)
+			if (polygon is not None): # Polygon given
+				point = polygon.centroid
+			else: # Bounding box
+				point = Point( (east+west)/2. , (north+south)/2. )
+			data = {"geometry":[point], "osm_id":[0]}
+			gdf = gpd.GeoDataFrame(data, crs={'init': 'epsg:4326'})
 
 	return gdf
 
@@ -1203,6 +1212,8 @@ def create_building_parts_gdf(date="", polygon=None, north=None, south=None, eas
 						 west=None, retain_invalid=False):
 	"""
 	Get building footprint data from OSM then assemble it into a GeoDataFrame.
+	If no building parts are retrieved, a default (null-data) point located at the centroid of the region of interest is created
+
 	Parameters
 	----------
 	date : string
@@ -1260,7 +1271,12 @@ def create_building_parts_gdf(date="", polygon=None, north=None, south=None, eas
 			gdf = gdf[gdf['geometry'].is_valid]
 		except: # Empty data frame
 			# Create a one-row data frame with null information (avoid later Spatial-Join crash)
-			data = {"geometry":[Point(0,0)], "osm_id":[0], "building:part":["yes"], "height":[""]}
+			if (polygon is not None): # Polygon given
+				point = polygon.centroid
+			else: # Bounding box
+				point = Point( (east+west)/2. , (north+south)/2. )
+			# Data as records
+			data = {"geometry":[point], "osm_id":[0], "building:part":["yes"], "height":[""]}
 			gdf = gpd.GeoDataFrame(data, crs={'init': 'epsg:4326'})
 
 	return gdf
