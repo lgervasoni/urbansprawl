@@ -39,14 +39,23 @@ def get_composed_classification(building, df_pois):
 	# Composed building-POIs classification
 	composed_classification = aggregate_classification( [building.classification, pois_classification] )
 	# Composed activity categories
-	composed_activity_category = list( set( [element for list_ in df_pois.activity_category for element in list_] + building.activity_category ) )
+	try:
+		composed_activity_category = list( set( [element for list_ in df_pois.activity_category for element in list_] + building.activity_category ) )
+	except: # df_pois.activity_category.isnull().all() Returns True
+		composed_activity_category = building.activity_category
 	# Create a Series for a new row with composed classification
 	composed_row = pd.Series( [building.geometry,composed_classification,composed_activity_category,building.building_levels], index=["geometry","classification","activity_category","building_levels"])
 	return composed_row
 
-def sum_landuses(x, landuses_m2, default_classification = None):
+def sum_landuses(x, landuses_m2, default_classification = None, mixed_building_first_floor_activity=True):
 	""" 
 	Associate to each land use its correspondent surface use for input building
+	Mixed-uses building Option 1:
+		First floor: Activity use
+		Rest: residential use
+	Mixed-uses building Option 2:
+		Half used for Activity uses, the other half Residential use
+
 
 	Parameters
 	----------
@@ -56,6 +65,9 @@ def sum_landuses(x, landuses_m2, default_classification = None):
 		squared meter surface associated to each land use
 	default_classification : pandas.Series
 		main building land use classification and included activity types
+	mixed_building_first_floor_activity : Boolean
+		if True: Associates building's first floor to activity uses and the rest to residential uses
+		if False: Associates half of the building's area to each land use (Activity and Residential)
 
 	Returns
 	----------
@@ -71,16 +83,19 @@ def sum_landuses(x, landuses_m2, default_classification = None):
 		for activity_type in x["activity_category"]:
 			landuses_m2[activity_type] += area_per_activity_category		
 	elif (x["classification"] is "mixed"): # Sum activity and residential use
-		if (x["building_levels"] > 1): # More than one level
+
+		if (x["building_levels"] > 1) and (mixed_building_first_floor_activity): # More than one level
 			# First floor
 			landuses_m2["residential"] += x["geometry"].area * ( x["building_levels"] - 1 )
 			# Rest of the building
 			landuses_m2["activity"] += x["geometry"].area
 			area_per_activity_category = x["geometry"].area
+		
 		else: # One level building
 			landuses_m2["residential"] += x["geometry"].area * x["building_levels"] / 2.
 			landuses_m2["activity"] += x["geometry"].area * x["building_levels"] / 2.
 			area_per_activity_category = ( x["geometry"].area * x["building_levels"] / 2. ) / len( x["activity_category"] )
+		
 		# Sum activity category m2		
 		for activity_type in x["activity_category"]:
 			landuses_m2[activity_type] += area_per_activity_category			
@@ -90,10 +105,10 @@ def sum_landuses(x, landuses_m2, default_classification = None):
 		# Row does not contain a classification, use given default classification creating a new dict
 		dict_x = {"classification":default_classification.classification, "geometry":x.geometry, "building_levels":x.building_levels, "activity_category":default_classification.activity_category}
 		# Recursive call
-		sum_landuses(dict_x, landuses_m2)
+		sum_landuses(dict_x, landuses_m2, mixed_building_first_floor_activity=mixed_building_first_floor_activity)
 
 
-def calculate_landuse_m2(building):
+def calculate_landuse_m2(building, mixed_building_first_floor_activity=True):
 	""" 
 	Calculate the total squared meters associated to residential and activity uses for input building
 	In addition, surface usage for each activity types is performed
@@ -102,6 +117,9 @@ def calculate_landuse_m2(building):
 	----------
 	building : geopandas.GeoSeries
 		input building
+	mixed_building_first_floor_activity : Boolean
+		if True: Associates building's first floor to activity uses and the rest to residential uses
+		if False: Associates half of the building's area to each land use (Activity and Residential)
 
 	Returns
 	----------
@@ -123,8 +141,7 @@ def calculate_landuse_m2(building):
 		Returns building parts with no min. level associated
 		"""
 		def no_min_level_tag(x): # Buildings starts from a specific num level?
-			if ( x.get("building:min_level") or x.get("min_level") or 
-					x.get("building:min_height") or x.get("min_height") ):
+			if ( x.get("building:min_level") or x.get("min_level") or x.get("building:min_height") or x.get("min_height") ):
 				return True
 			else:
 				return False
@@ -143,10 +160,10 @@ def calculate_landuse_m2(building):
 	building_composed_classification.geometry = building_composed_classification.geometry.difference( no_min_level_geometry(building.full_parts) )
 
 	# Sum land uses for main building
-	sum_landuses(building_composed_classification, landuse_m2)
+	sum_landuses(building_composed_classification, landuse_m2, mixed_building_first_floor_activity=mixed_building_first_floor_activity)
 	
 	# Sum land uses for building parts. If no classification given, use the building's land use
-	building.full_parts.apply(lambda x: sum_landuses(x, landuse_m2, building_composed_classification[["classification","activity_category"]]), axis=1)
+	building.full_parts.apply(lambda x: sum_landuses(x, landuse_m2, building_composed_classification[["classification","activity_category"]], mixed_building_first_floor_activity=mixed_building_first_floor_activity), axis=1)
 	
 	return landuse_m2
 
@@ -173,10 +190,10 @@ def associate_levels(df_osm, default_height, meters_per_level):
 		"""
 		Returns estimated number of levels given input height (meters)
 		"""
-		levels = round( height / meters_per_level )
+		levels = abs( round( height / meters_per_level ) )
 		if (levels >= 1):
 			return levels
-		else: # By default: 1 level 
+		else: # By default: 1 level
 			assert( height > 0 )
 			return 1
 
@@ -218,8 +235,31 @@ def associate_levels(df_osm, default_height, meters_per_level):
 
 	df_osm["building_levels"] = df_osm.height_tags.apply( lambda x: associate_level(x) )
 
+def classification_sanity_check(building):
+	"""
+	Performs a sanity check in order to achieve coherence between the building's classification and the amount of M^2 associated to each land use
+	Example: A building's classification could be 'residential', but contains its building parts (occupying 100% of the area, then all land uses M^2 associated to this land use) contain an acitivty use
+	This would impose a problem of coherence between the classification and its surface land use
 
-def compute_landuses_m2(df_osm_built, df_osm_building_parts, df_osm_pois, default_height=6, meters_per_level=3):
+	Parameters
+	----------
+	building : geopandas.GeoSeries
+		one row denoting the building's information
+
+	Returns
+	----------
+	string
+		returns the coherent classification
+	"""
+	if ( building.landuses_m2["residential"] > 0 ):
+		if ( building.landuses_m2["activity"] > 0 ): # Mixed use
+			return "mixed" 
+		else: # Residential use
+			return "residential"
+	else: # Activity use
+		return "activity"
+
+def compute_landuses_m2(df_osm_built, df_osm_building_parts, df_osm_pois, default_height=6, meters_per_level=3, mixed_building_first_floor_activity=True):
 	"""
 	Determine the effective number of levels per building or building parts
 	Calculate the amount of squared meters associated to residential and activity uses per building
@@ -237,6 +277,9 @@ def compute_landuses_m2(df_osm_built, df_osm_building_parts, df_osm_pois, defaul
 		default building height in meters
 	meters_per_level : float
 		default meters per level
+	mixed_building_first_floor_activity : Boolean
+		if True: Associates building's first floor to activity uses and the rest to residential uses
+		if False: Associates half of the building's area to each land use (Activity and Residential)
 
 	Returns
 	----------
@@ -259,8 +302,11 @@ def compute_landuses_m2(df_osm_built, df_osm_building_parts, df_osm_pois, defaul
 	df_osm_built["pois_full_parts"] = df_osm_built.containing_poi.apply(lambda x: df_osm_pois.loc[x, col_interest] if isinstance(x, list) else df_osm_pois.loc[ [], col_interest] )
 
 	# Calculate m2's for each land use, plus for each activity category
-	df_osm_built["landuses_m2"] = df_osm_built.apply(lambda x: calculate_landuse_m2(x), axis=1 )
+	df_osm_built["landuses_m2"] = df_osm_built.apply(lambda x: calculate_landuse_m2(x, mixed_building_first_floor_activity=mixed_building_first_floor_activity), axis=1 )
 
 	# Drop added full parts
 	df_osm_built.drop( ["full_parts"], axis=1, inplace=True )
 	df_osm_built.drop( ["pois_full_parts"], axis=1, inplace=True )
+
+	# Sanity check: For each building land use classfication, its M^2 associated to these land uses must be greater than 1
+	df_osm_built["classification"] = df_osm_built.apply(lambda x: classification_sanity_check(x), axis=1 )

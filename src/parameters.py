@@ -89,3 +89,25 @@ def get_population_urban_features_filename(city_ref_file, data_source):
 	if not(os.path.isdir(storage_folder + "/" + data_source)): 
 		os.makedirs(storage_folder + "/" + data_source)
 	return storage_folder + "/" + data_source + "/" + city_ref_file + "_urban_features." + geo_format
+
+def get_population_training_validating_filename(city_ref_file, data_source="training"):
+	"""
+	Get population normalised urban features extract and population densities filename for input city
+	Stored in Numpy.Arrays
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+
+	Returns
+	----------
+	string
+		returns the numpy stored/storing filename
+	
+	"""
+	# Folder exists?
+	import os
+	if not(os.path.isdir(storage_folder + "/" + data_source)): 
+		os.makedirs(storage_folder + "/" + data_source)
+	return storage_folder + "/" + data_source + "/" + city_ref_file + "_X_Y.npz"

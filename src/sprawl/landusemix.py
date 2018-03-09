@@ -80,8 +80,6 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 	log("Land use mix calculation")
 	start = time.time()
 
-	# If kde_activities_file and/or kde_residential_file provided, load KDE's
-
 	# Get the bandwidth, related to 'walkable distances'
 	bandwidth = kw_args["walkable_distance"]
 	# Compute a weighted KDE?
@@ -96,7 +94,7 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 	############
 	### Calculate land use density estimations
 	############
-	
+
 	####
 	# Residential
 	####

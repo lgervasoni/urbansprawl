@@ -157,7 +157,7 @@ def verify_divide_edge(G, u, v, key, data, node_creation_counter, max_edge_lengt
 	node_data = {'osmid':node_osmid, 'x':x, 'y':y}
 	
 	# Add middle node with its corresponding data
-	G.add_node(n=node_osmid)
+	G.add_node(node_osmid)
 	nx.set_node_attributes(G, {node_osmid : node_data } )
 	
 	# Add edges (u,middle) and (middle,v)

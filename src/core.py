@@ -85,7 +85,7 @@ def get_route_graph(city_ref, date="", polygon=None, north=None, south=None, eas
 
 
 def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "place":None, "which_result":1, "point":None, "address":None, "distance":None, "north":None, "south":None, "east":None, "west":None},
-			kwargs={"retrieve_graph":True, "default_height":3, "meters_per_level":3, "associate_landuses_m2":True, "minimum_m2_building_area":9, "date":None}):
+			kwargs={"retrieve_graph":True, "default_height":3, "meters_per_level":3, "associate_landuses_m2":True, "mixed_building_first_floor_activity":True, "minimum_m2_building_area":9, "date":None}):
 	"""
 	Retrieves buildings, building parts, and Points of Interest associated with a residential/activity land use from OpenStreetMap data for input city
 	If a name for input city is given, the data will be loaded (if it was previously stored)
@@ -129,6 +129,9 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 				buildings number of levels assumed under missing data
 			associate_landuses_m2 : boolean
 				compute the total square meter for each land use
+			mixed_building_first_floor_activity : Boolean
+				if True: Associates building's first floor to activity uses and the rest to residential uses
+				if False: Associates half of the building's area to each land use (Activity and Residential)
 			minimum_m2_building_area : float
 				minimum area to be considered a building (otherwise filtered)
 			date : datetime.datetime
@@ -298,11 +301,17 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	### Associate effective number of levels, and measure the surface dedicated to each land use per building
 	####################################################
 	if (kwargs["associate_landuses_m2"]):
-		compute_landuses_m2(df_osm_built, df_osm_building_parts, df_osm_pois, default_height=3, meters_per_level=3)
+		default_height = kwargs["default_height"]
+		meters_per_level = kwargs["meters_per_level"]
+		mixed_building_first_floor_activity = kwargs["mixed_building_first_floor_activity"]
+		compute_landuses_m2(df_osm_built, df_osm_building_parts, df_osm_pois, default_height=default_height, meters_per_level=meters_per_level, mixed_building_first_floor_activity=mixed_building_first_floor_activity)
 
 	df_osm_built.loc[ df_osm_built.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
 	df_osm_pois.loc[ df_osm_pois.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
 	df_osm_building_parts.loc[ df_osm_building_parts.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
+
+	# Set the composed classification given, for each building, its containing Points of Interest and building parts classification
+	df_osm_built.loc[ df_osm_built.apply(lambda x: x.landuses_m2["activity"]>0 and x.landuses_m2["residential"]>0, axis=1 ), "classification" ] = "mixed"
 
 	log('Done: Land uses surface association')
 
@@ -452,33 +461,3 @@ def process_spatial_indices(city_ref_file=None, region_args={"polygon":None, "pl
 	except Exception as e:
 		log("Could not compute the spatial indices. An exception occured: " + str(e))
 		return None
-
-
-def perform_population_downscaling(city_ref_file=None, kwargs={"method":"proportional"} ):
-	"""
-	TODO ...
-
-	Returns
-	----------
-	gpd.GeoDataFrame
-        returns INSEE population data with the estimated population at each square, and the computed absolute and relative errors
-	"""
-	# Get buildings
-	df_osm_built, _, _ = get_processed_osm_data(city_ref)
-
-	# Extract population data: INSEE data
-	df_insee = get_extract_population_data(city_ref=city_ref, data_source="insee", pop_shapefile=files["insee_shapefile"], pop_data_file=["insee_data_file"], df_osm_built=df_osm_built)
-
-	# Get aggregated population data (at GPW's resolution)
-	df_insee_square_group = get_aggregated_squares(df_insee)
-
-	if (kwargs["method"] == "proportional"):
-		# Perform downscaling estimation
-		proportional_population_downscaling(df_osm_built, df_insee_square_group)
-	else:
-		assert(False)
-
-	# Validate estimation: Calculate absolute and relative errors within each population grid square
-	population_downscaling_validation(df_osm_built, df_insee)
-
-	return df_insee
