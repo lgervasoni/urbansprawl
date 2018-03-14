@@ -49,6 +49,8 @@ def get_indices_grid(df_osm_built, df_osm_building_parts, df_osm_pois, step=100)
 	west, south, east, north = pd.concat( [ df_osm_built, df_osm_building_parts, df_osm_pois ] ).total_bounds
 	# Create indices
 	df_indices = gpd.GeoDataFrame( [ Point(i,j) for i in np.arange(west, east, step) for j in np.arange(south, north, step) ], columns=["geometry"] )
+	# Set projection
+	df_indices.crs = df_osm_built.crs
 	return df_indices
 
 
@@ -310,8 +312,9 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	df_osm_pois.loc[ df_osm_pois.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
 	df_osm_building_parts.loc[ df_osm_building_parts.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
 
-	# Set the composed classification given, for each building, its containing Points of Interest and building parts classification
-	df_osm_built.loc[ df_osm_built.apply(lambda x: x.landuses_m2["activity"]>0 and x.landuses_m2["residential"]>0, axis=1 ), "classification" ] = "mixed"
+	if (kwargs["associate_landuses_m2"]):
+		# Set the composed classification given, for each building, its containing Points of Interest and building parts classification
+		df_osm_built.loc[ df_osm_built.apply(lambda x: x.landuses_m2["activity"]>0 and x.landuses_m2["residential"]>0, axis=1 ), "classification" ] = "mixed"
 
 	log('Done: Land uses surface association')
 
@@ -457,7 +460,9 @@ def process_spatial_indices(city_ref_file=None, region_args={"polygon":None, "pl
 			compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, landusemix_args)
 		if (indices_computation.get("dispersion")):
 			compute_grid_dispersion(df_indices, df_osm_built, dispersion_args)
+		
 		return df_indices
+
 	except Exception as e:
 		log("Could not compute the spatial indices. An exception occured: " + str(e))
 		return None
