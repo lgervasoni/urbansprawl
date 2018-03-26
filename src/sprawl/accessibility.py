@@ -23,7 +23,7 @@ from .utils import divide_long_edges_graph
 ##############################################################
 
 def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args={'fixed_distance':True,'fixed_activities':False,'max_edge_length':200,'max_node_distance':250,
-				'fixed_distance_max_travel_distance':2000, 'fixed_distance_max_num_activities':250, 'fixed_activities_min_number': 20} ):
+				'fixed_distance_max_travel_distance':2000, 'fixed_distance_max_num_activities':250, 'fixed_activities_min_number': 20, 'fixed_activities_max_travel_distance':5000} ):
 	""" 
 	Calculate accessibility values at point_ref
 
@@ -37,8 +37,6 @@ def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args
 		data with geo-referenced activity land uses
 	kw_args: dict
 		additional keyword arguments for the indices calculation
-	extra_args : array
-		additional arguments for the indices calculation
 			fixed_distance : bool
 				denotes the cumulative opportunities access to activity land uses given a fixed maximum distance to travel
 			fixed_activities : bool
@@ -53,6 +51,8 @@ def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args
 				(fixed distance) cut iteration if the number of activites exceeds a threshold
 			fixed_activities_min_number: int
 				(fixed activities) minimum number of activities required
+			fixed_activities_max_travel_distance : int
+				(fixed activities) maximum distance tolerated (cut&branch) when searching for the activities
 
 
 	Returns
