@@ -75,7 +75,7 @@ OpenStreetMap data is retrieved using the Overpass API.
 An input region of interest can be extracted by:
 
 * Place + result number: The name of the city/region, and the resulting number to retrieve (as seen in OpenStreetMap result order)
-* Poylygon: A polygon with the coordinates delimitating the desired region of interest
+* Polygon: A polygon with the coordinates delimitating the desired region of interest
 * Bounding box: Using northing, southing, easting, and westing coordinates
 * Point + distance (meters): Use the (latitude, longitude) central point plus an input distance around it
 * Address + distance (meters): Set the address as central point and an input distance around it
