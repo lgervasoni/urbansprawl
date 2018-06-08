@@ -175,7 +175,7 @@ def osm_bldg_download(date="", polygon=None, north=None, south=None, east=None, 
 			west, south, east, north = poly.bounds
 			query_template = (date+'[out:json][timeout:{timeout}]{maxsize};((way["building"]({south:.8f},'
 							  '{west:.8f},{north:.8f},{east:.8f});(._;>;););(relation["building"]'
-							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);));out;')
+							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);););out;')
 			query_str = query_template.format(north=north, south=south, east=east, west=west, timeout=timeout, maxsize=maxsize)
 			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
@@ -198,7 +198,7 @@ def osm_bldg_download(date="", polygon=None, north=None, south=None, east=None, 
 		for polygon_coord_str in polygon_coord_strs:
 			query_template = (date+'[out:json][timeout:{timeout}]{maxsize};(way'
 							  '(poly:"{polygon}")["building"];(._;>;);relation'
-							  '(poly:"{polygon}")["building"];(._;>;));out;')
+							  '(poly:"{polygon}")["building"];(._;>;););out;')
 			query_str = query_template.format(polygon=polygon_coord_str, timeout=timeout, maxsize=maxsize)
 			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
@@ -822,7 +822,7 @@ def osm_landuse_download(date="", polygon=None, north=None, south=None, east=Non
 			west, south, east, north = poly.bounds
 			query_template = (date+'[out:json][timeout:{timeout}]{maxsize};((way["landuse"]({south:.8f},'
 							  '{west:.8f},{north:.8f},{east:.8f});(._;>;););(relation["landuse"]'
-							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);));out;')
+							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);););out;')
 			query_str = query_template.format(north=north, south=south, east=east, west=west, timeout=timeout, maxsize=maxsize)
 			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
@@ -845,7 +845,7 @@ def osm_landuse_download(date="", polygon=None, north=None, south=None, east=Non
 		for polygon_coord_str in polygon_coord_strs:
 			query_template = (date+'[out:json][timeout:{timeout}]{maxsize};(way'
 							  '(poly:"{polygon}")["landuse"];(._;>;);relation'
-							  '(poly:"{polygon}")["landuse"];(._;>;));out;')
+							  '(poly:"{polygon}")["landuse"];(._;>;););out;')
 			query_str = query_template.format(polygon=polygon_coord_str, timeout=timeout, maxsize=maxsize)
 			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
@@ -998,7 +998,7 @@ def osm_pois_download(date="", polygon=None, north=None, south=None, east=None, 
 				'{west:.8f},{north:.8f},{east:.8f}););(node["shop"]({south:.8f},'
 				'{west:.8f},{north:.8f},{east:.8f}););(node["sport"]({south:.8f},'
 				'{west:.8f},{north:.8f},{east:.8f}););(node["building"]({south:.8f},'
-				'{west:.8f},{north:.8f},{east:.8f});));out;')
+				'{west:.8f},{north:.8f},{east:.8f});););out;')
 			query_str = query_template.format(north=north, south=south, east=east, west=west, timeout=timeout, maxsize=maxsize)
 			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
@@ -1025,7 +1025,7 @@ def osm_pois_download(date="", polygon=None, north=None, south=None, east=None, 
 				'(node["office"](poly:"{polygon}"););'
 				'(node["shop"](poly:"{polygon}"););'
 				'(node["sport"](poly:"{polygon}"););'
-				'(node["building"](poly:"{polygon}");));out;')
+				'(node["building"](poly:"{polygon}");););out;')
 			query_str = query_template.format(polygon=polygon_coord_str, timeout=timeout, maxsize=maxsize)
 			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
@@ -1173,7 +1173,7 @@ def osm_bldg_part_download(date="", polygon=None, north=None, south=None, east=N
 			west, south, east, north = poly.bounds
 			query_template = (date+'[out:json][timeout:{timeout}]{maxsize};((way["building:part"]({south:.8f},'
 							  '{west:.8f},{north:.8f},{east:.8f});(._;>;););(relation["building:part"]'
-							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);));out;')
+							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);););out;')
 			query_str = query_template.format(north=north, south=south, east=east, west=west, timeout=timeout, maxsize=maxsize)
 			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
@@ -1196,7 +1196,7 @@ def osm_bldg_part_download(date="", polygon=None, north=None, south=None, east=N
 		for polygon_coord_str in polygon_coord_strs:
 			query_template = (date+'[out:json][timeout:{timeout}]{maxsize};(way'
 							  '(poly:"{polygon}")["building:part"];(._;>;);relation'
-							  '(poly:"{polygon}")["building:part"];(._;>;));out;')
+							  '(poly:"{polygon}")["building:part"];(._;>;););out;')
 			query_str = query_template.format(polygon=polygon_coord_str, timeout=timeout, maxsize=maxsize)
 			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
