@@ -133,7 +133,7 @@ def get_extract_population_data(city_ref, data_source, pop_shapefile=None, pop_d
 		return gpd.read_file( get_population_extract_filename(city_ref, data_source) )
 
 	# Input shape given?
-	assert( not ( (np.all(df_osm_built is None) ) and (polygon is None) ) )
+	assert( not ( np.all(df_osm_built is None ) ) )
 	# Input population shapefile given?
 	assert( not pop_shapefile is None )
 	# All input files given?
