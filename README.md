@@ -60,13 +60,13 @@ urbansprawl works with Python 2+3.
 
 - Python dependencies:
 ```sh
-osmnx scikit-learn
+osmnx scikit-learn psutil
 ```
 
 * Using anaconda:
 ```sh
 conda update -c conda-forge --all
-conda install -c conda-forge osmnx scikit-learn
+conda install -c conda-forge osmnx scikit-learn psutil
 ```
 
 ## Example: Urban sprawl
