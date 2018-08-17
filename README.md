@@ -53,7 +53,7 @@ Urbansprawl provides an open framework to aid in the process of calculating spra
 
 * Gervasoni Luciano, Fenet Serge, and Sturm Peter. 2018. "[Une méthode pour l’estimation désagrégée de données de population à l’aide de données ouvertes](https://hal.inria.fr/hal-01667975)." Conférence Internationale sur l'Extraction et la Gestion des Connaissances (EGC 2018).
 
-* Gervasoni Luciano, Fenet Serge, Régis Perrier and Sturm Peter. 2018. "[Convolutional neural networks for disaggregated population mapping using open data](https://hal.inria.fr/hal-01852585)." IEEE International Conference on Data Science and Advanced Analytics (DSAA 2018).
+* Gervasoni Luciano, Fenet Serge, Perrier Régis and Sturm Peter. 2018. "[Convolutional neural networks for disaggregated population mapping using open data](https://hal.inria.fr/hal-01852585)." IEEE International Conference on Data Science and Advanced Analytics (DSAA 2018).
 
 ## Dependencies
 
