@@ -34,7 +34,10 @@ def metric_phi_entropy(x,y):
 	float
 		entropy value
 	"""
-	if (x <= 0 or y <= 0): return np.nan
+	# Undefined for negative values
+	if (x<0 or y<0): return np.nan
+	# Entropy Index not defined for any input value equal to zero (due to logarithm)
+	if (x == 0 or y == 0): return 0
 	# Sum = 1
 	x_,y_ = x/(x+y), y/(x+y)
 	phi_value = - ( ( x_*math.log(x_) ) + ( y_*math.log(y_) ) ) / math.log(2)
