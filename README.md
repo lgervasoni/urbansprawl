@@ -55,19 +55,61 @@ Urbansprawl provides an open framework to aid in the process of calculating spra
 
 * Gervasoni Luciano, Fenet Serge, Perrier Régis and Sturm Peter. 2018. "[Convolutional neural networks for disaggregated population mapping using open data](https://hal.inria.fr/hal-01852585)." IEEE International Conference on Data Science and Advanced Analytics (DSAA 2018).
 
-## Dependencies
+## Installation
 
-urbansprawl works with Python 2+3.
+The urbansprawl framework works with Python 2+3.
 
 - Python dependencies:
 ```sh
-osmnx scikit-learn psutil keras
+osmnx scikit-learn psutil tensorflow keras jupyter
 ```
 
-* Using anaconda:
+
+
+### Using pip
+- Install the ```spatialindex``` library. Using apt-get (Linux):
+```sh
+sudo apt-get install libspatialindex-dev
+```
+- Install the dependencies using *pip*
+```sh
+pip install osmnx scikit-learn psutil tensorflow keras jupyter
+```
+
+### Using Miniconda
+- Install [Miniconda](https://conda.io/miniconda.html)
+- [Optional] Create a [conda virtual environment](http://conda.pydata.org/docs/using/envs.html) 
+```
+conda create --name urbansprawl-env
+source activate urbansprawl-env
+```
+- Install the ```spatialindex``` library. Using apt-get (Linux):
+```sh
+sudo apt-get install libspatialindex-dev
+```
+- Install the dependencies using the conda package manager and the conda-forge channel
+```sh
+conda install -c conda-forge osmnx scikit-learn psutil tensorflow keras jupyter
+```
+
+### Using Anaconda
+- Install [Anaconda](https://www.anaconda.com/download)
+- [Optional] Create a [conda virtual environment](http://conda.pydata.org/docs/using/envs.html) 
+```
+conda create --name urbansprawl-env
+source activate urbansprawl-env
+```
+
+- Install the dependencies using the conda package manager and the conda-forge channel
 ```sh
 conda update -c conda-forge --all
-conda install -c conda-forge osmnx scikit-learn psutil keras
+conda install -c conda-forge osmnx scikit-learn psutil tensorflow keras jupyter
+```
+
+### Usage
+To run the different Notebooks provided in the ```examples``` folder
+```sh
+jupyter notebook
 ```
 
 ## Example: Urban sprawl
