@@ -202,6 +202,13 @@ def associate_levels(df_osm, default_height, meters_per_level):
 		Associates the number of levels to input building given its height tags information
 		Returns the absolute value in order to consider the cases of underground levels
 		"""
+		
+		# No height tags available
+		if not ( type(x) == dict ): 
+			# Default values
+			number_levels = levels_from_height(default_height, meters_per_level)
+			return number_levels
+
 		# Buildings starts from a specific num level?
 		if ( x.get("building:min_level") ): # building:min_level
 			min_level = x["building:min_level"]

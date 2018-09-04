@@ -8,12 +8,40 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 
-from ..parameters import geo_driver
 from .osm_tags import height_tags
+
+from ..settings import storage_folder
+
+# Format for load/save the geo-data ['geojson','shp']
+geo_format = 'geojson' # 'shp'
+geo_driver = 'GeoJSON' # 'ESRI Shapefile'
 
 ###################################################
 ### I/O utils
 ###################################################
+
+def get_dataframes_filenames(city_ref_file):
+	"""
+	Get data frame file names for input city
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+
+	Returns
+	----------
+	[ string, string, string ]
+		returns filenames for buildings, building parts, and points of interest
+	
+	"""
+	import os
+	if not(os.path.isdir(storage_folder)): 
+		os.makedirs(storage_folder)
+	geo_poly_file = storage_folder+"/"+city_ref_file+"_buildings."+geo_format
+	geo_poly_parts_file = storage_folder+"/"+city_ref_file+"_building_parts."+geo_format
+	geo_point_file = storage_folder+"/"+city_ref_file+"_poi."+geo_format
+	return geo_poly_file, geo_poly_parts_file, geo_point_file
 
 def load_geodataframe(geo_filename):
 	""" 
@@ -68,7 +96,7 @@ def store_geodataframe(df_osm_data, geo_filename):
 	----------
 	
 	"""
-	# To epsg 4326 (GeoJSON do not store projections)
+	# To EPSG 4326 (GeoJSON does not store projection information)
 	df_osm_data = ox.project_gdf(df_osm_data, to_latlong=True)
 	
 	# Lists to string (needed to save GeoJSON files)
@@ -89,7 +117,7 @@ def store_geodataframe(df_osm_data, geo_filename):
 def sanity_check_height_tags(df_osm):
 	""" 
 	Compute a sanity check for all height tags
-	If uncorrectly tagged, try to replace with the correct tag
+	If incorrectly tagged, try to replace with the correct tag
 	Any meter or level related string are replaced, and heights using the imperial units are converted to the metric system
 
 	Parameters
