@@ -1,4 +1,24 @@
 """This module aims at recovering OpenStreetMap data through Overpass API
+
+To accomplish a task, the following command must be run on the terminal:
+
+```
+python -m luigi --local-scheduler --module urbansprawl.tasks <Task> <params>
+```
+
+with `Task` one of the class defined below, and `params` the corresponding
+parameters.
+
+This computation is done locally (because of the ̀--local-scheduler` option). It
+can be done on a server, by first launching an instance of the luigi daemon :
+```
+luigid
+̀``
+
+and then by running the previous command without the `--local-scheduler`
+option. The task dependency graph and some miscellaneous information about the
+tasks are visible at `localhost:8082` URL address.
+
 """
 
 from datetime import date
@@ -98,12 +118,19 @@ def clean_list_in_geodataframe_column(gdf, column):
 class GetBoundingBox(luigi.Task):
     """Extract the bounding box around a given `city`
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks GetBoundingBox
+    --city valence-drome
+    ```
+
     Attributes
     ----------
     city : str
         City of interest
     datapath : str
         Indicates the folder where the task result has to be serialized
+    (default: `./data`)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
@@ -126,6 +153,12 @@ class GetBuildings(luigi.Task):
     """Give a raw version of OpenStreetMap buildings through an Overpass API
     query
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks GetBuildings
+    --city valence-drome --date-query 2017-01-01T1200
+    ```
+
     Attributes
     ----------
     city : str
@@ -136,7 +169,7 @@ class GetBuildings(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
@@ -172,6 +205,12 @@ class GetBuildingParts(luigi.Task):
     """Give a raw version of OpenStreetMap building parts through an Overpass API
     query
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks GetBuildingParts
+    --city valence-drome --date-query 2017-01-01T1200
+    ```
+
     Attributes
     ----------
     city : str
@@ -182,7 +221,7 @@ class GetBuildingParts(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
@@ -218,6 +257,12 @@ class GetPOIs(luigi.Task):
     """Give a raw version of OpenStreetMap Points of Interest (POIs) through an
     Overpass API query
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks GetPOIs
+    --city valence-drome --date-query 2017-01-01T1200
+    ```
+
     Attributes
     ----------
     city : str
@@ -228,7 +273,7 @@ class GetPOIs(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
@@ -265,6 +310,12 @@ class GetPOIs(luigi.Task):
 class CreateLandUse(luigi.Task):
     """Query the OpenStreetMap land uses with Overpass API
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks CreateLandUse
+    --city valence-drome
+    ```
+
     Attributes
     ----------
     city : str
@@ -275,7 +326,7 @@ class CreateLandUse(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
@@ -313,6 +364,12 @@ class SanityCheck(luigi.Task):
     """Check buildings and building parts GeoDataFrames, especially their
     height tags
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks SanityCheck
+    --city valence-drome --table buildings
+    ```
+
     Attributes
     ----------
     city : str
@@ -323,7 +380,7 @@ class SanityCheck(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     table : str
         Structure to check, either `buildings` or `building-parts`
     """
@@ -374,6 +431,12 @@ class GetClassifiedInfo(luigi.Task):
     """Classify each building, building part or POI record as "residential",
     "activity" or "mixed" according to the associated tags
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks GetClassifiedInfo
+    --city valence-drome --table buildings
+    ```
+
     Attributes
     ----------
     city : str
@@ -384,7 +447,7 @@ class GetClassifiedInfo(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     table : str
         Structure of interest, either `buildings`, `building-parts` or `pois`
     """
@@ -443,6 +506,12 @@ class SetupProjection(luigi.Task):
     """Fix the GeoDataFrames projections, so as to ensure that every
     GeoDataFrames has the same projection
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks SetupProjection
+    --city valence-drome --table buildings-parts
+    ```
+
     Attributes
     ----------
     city : str
@@ -453,7 +522,7 @@ class SetupProjection(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     table : str
         Structure of interest, either `buildings`, `building-parts` or `pois`
     srid : int
@@ -504,6 +573,12 @@ class InferLandUse(luigi.Task):
     """Infer land use of each OpenStreetMap building thanks to land use
     information
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks InferLandUse
+    --city valence-drome --date-query 2017-01-01T1200 --srid 4326
+    ```
+
     Attributes
     ----------
     city : str
@@ -514,7 +589,7 @@ class InferLandUse(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     srid : int
         Geographical projection (default 4326, *i.e.* WGS84)
     """
@@ -545,13 +620,19 @@ class InferLandUse(luigi.Task):
         land_uses = gpd.read_file(self.input()["land-uses"].path)
         compute_landuse_inference(buildings, land_uses)
         assert(len(buildings[buildings.key_value=={"inferred":"other"} ]) == 0)
-        assert(len(buildings[buildings.classification.isnull()]) == 0) 
+        assert(len(buildings[buildings.classification.isnull()]) == 0)
         buildings.to_file(self.output().path, driver="GeoJSON")
 
 
 class AssociateStructures(luigi.Task):
     """Associate OpenStreetMap buildings with respectively building parts and
     POIs : enrich the building GeoDataFrame with building parts and POIs data
+
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks
+    AssociateStructures --city valence-drome
+    ```
 
     Attributes
     ----------
@@ -563,7 +644,7 @@ class AssociateStructures(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     srid : int
         Geographical projection (default 4326, *i.e.* WGS84)
     """
@@ -607,6 +688,12 @@ class AssociateStructures(luigi.Task):
 class ComputeLandUse(luigi.Task):
     """Compute land use per building type (residential, activity or mixed)
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks ComputeLandUse
+    --city valence-drome --default-heights 6 --meters-per-level 2
+    ```
+
     Attributes
     ----------
     city : str
@@ -617,13 +704,13 @@ class ComputeLandUse(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     srid : int
         Geographical projection (default 4326, *i.e.* WGS84)
     default_height : int
         Default building height, in meters (default: 3 meters)
     meters_per_level : int
-        Default height per level, in meter (default: 3 meters)   
+        Default height per level, in meter (default: 3 meters)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
@@ -678,6 +765,12 @@ class GetRouteGraph(luigi.Task):
     """Retrieve routing graph for the given city, through its encompassing
     bounding box
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks GetRouteGraph
+    --city valence-drome --srid 4326
+    ```
+
     Attributes
     ----------
     city : str
@@ -688,7 +781,7 @@ class GetRouteGraph(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     srid : int
         Geographical projection (default 4326, *i.e.* WGS84)
     """
@@ -727,6 +820,13 @@ class GetRouteGraph(luigi.Task):
 class MasterTask(luigi.Task):
     """Generic task that launches every final task
 
+    Example:
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks MasterTask
+    --city valence-drome --date-query 2017-01-01T1200 --srid 4326
+    --default-height 3 --meters-per-level 3
+    ```
+
     Attributes
     ----------
     city : str
@@ -737,13 +837,13 @@ class MasterTask(luigi.Task):
         Output file extension (by default: `GeoJSON`)
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
-    AAAAMMDDThh:mm:ss)
+    AAAA-MM-DDThhmm)
     srid : int
         Geographical projection (default 4326, *i.e.* WGS84)
     default_height : int
         Default building height, in meters (default: 3 meters)
     meters_per_level : int
-        Default height per level, in meter (default: 3 meters)   
+        Default height per level, in meter (default: 3 meters)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
