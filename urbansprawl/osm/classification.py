@@ -11,7 +11,7 @@ from scipy import spatial
 
 from osmnx.utils import log
 
-from .osm_tags import key_classification, landuse_classification, activity_classification
+from .tags import key_classification, landuse_classification, activity_classification
 
 ####################################################################################
 # Under uncertainty: Residential assumption?

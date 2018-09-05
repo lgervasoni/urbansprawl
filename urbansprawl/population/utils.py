@@ -11,6 +11,79 @@ import numpy as np
 from shapely.geometry import Polygon
 from shapely.geometry import Point
 
+
+
+def get_population_extract_filename(city_ref_file, data_source):
+	"""
+	Get data population extract filename for input city
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+	data_source : string
+		desired population data source
+
+	Returns
+	----------
+	string
+		returns the population extract filename
+	
+	"""
+	# Folder exists?
+	import os
+	if not(os.path.isdir(storage_folder + "/" + data_source)): 
+		os.makedirs(storage_folder + "/" + data_source)
+	return storage_folder + "/" + data_source + "/" + city_ref_file + "_population.shp"
+
+def get_population_urban_features_filename(city_ref_file, data_source):
+	"""
+	Get population urban features extract filename for input city
+	Force GeoJSON format: Shapefiles truncate column names
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+	data_source : string
+		desired population data source
+
+	Returns
+	----------
+	string
+		returns the population extract filename
+	
+	"""
+	# Folder exists?
+	import os
+	if not(os.path.isdir(storage_folder + "/" + data_source)): 
+		os.makedirs(storage_folder + "/" + data_source)
+	return storage_folder + "/" + data_source + "/" + city_ref_file + "_urban_features." + geo_format
+
+def get_population_training_validating_filename(city_ref_file, data_source="training"):
+	"""
+	Get population normalised urban features extract and population densities filename for input city
+	Stored in Numpy.Arrays
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+
+	Returns
+	----------
+	string
+		returns the numpy stored/storing filename
+	
+	"""
+	# Folder exists?
+	import os
+	if not(os.path.isdir(storage_folder + "/" + data_source)): 
+		os.makedirs(storage_folder + "/" + data_source)
+	return storage_folder + "/" + data_source + "/" + city_ref_file + "_X_Y.npz"
+
+#################################################################
+
 def get_aggregated_squares(df_insee, step=1000., conserve_squares_info=False):
 	"""
 	Aggregates input population data in squares of 5x5

@@ -8,7 +8,7 @@ import geopandas as gpd
 import numpy as np
 from osmnx.utils import log
 
-from ..osm.osm_core import get_route_graph, get_processed_osm_data
+from ..osm.core import get_route_graph, get_processed_osm_data
 from .landusemix import compute_grid_landusemix
 from .accessibility import compute_grid_accessibility
 from .dispersion import compute_grid_dispersion

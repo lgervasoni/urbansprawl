@@ -9,11 +9,11 @@ import numpy as np
 import os.path
 from osmnx.utils import log
 
-from .osm_overpass import create_landuse_gdf, create_pois_gdf, create_building_parts_gdf, create_buildings_gdf_from_input, retrieve_route_graph
-from .osm_tags import columns_osm_tag, height_tags, building_parts_to_filter
-from .osm_data import compute_landuse_inference, classify_tag, classify_activity_category
-from .osm_surface import compute_landuses_m2
-from .osm_utils import load_geodataframe, store_geodataframe, get_dataframes_filenames, associate_structures, sanity_check_height_tags
+from .overpass import create_landuse_gdf, create_pois_gdf, create_building_parts_gdf, create_buildings_gdf_from_input, retrieve_route_graph
+from .tags import columns_osm_tag, height_tags, building_parts_to_filter
+from .classification import compute_landuse_inference, classify_tag, classify_activity_category
+from .surface import compute_landuses_m2
+from .utils import load_geodataframe, store_geodataframe, get_dataframes_filenames, associate_structures, sanity_check_height_tags
 
 def get_route_graph(city_ref, date="", polygon=None, north=None, south=None, east=None, west=None, force_crs=None):
 	""" 

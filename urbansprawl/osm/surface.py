@@ -11,8 +11,8 @@ from shapely.geometry import Polygon
 
 from osmnx.utils import log
 
-from .osm_tags import height_tags, activity_classification
-from .osm_data import aggregate_classification
+from .tags import height_tags, activity_classification
+from .classification import aggregate_classification
 
 ############################################
 ### Land uses surface association

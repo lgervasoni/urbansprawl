@@ -8,7 +8,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 
-from .osm_tags import height_tags
+from .tags import height_tags
 
 from ..settings import storage_folder
 

@@ -11,7 +11,8 @@ import numpy as np
 import osmnx as ox
 
 from osmnx.utils import log
-from ..parameters import get_population_extract_filename
+
+from .utils import get_population_extract_filename
 
 DATA_SOURCES = ['insee','gpw']
 

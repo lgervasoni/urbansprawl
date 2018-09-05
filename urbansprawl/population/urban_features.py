@@ -13,15 +13,14 @@ import time
 from osmnx.utils import log
 
 from .utils import get_aggregated_squares, get_population_df_filled_empty_squares
+# Filenames
+from .utils import get_population_urban_features_filename, get_population_training_validating_filename
 
 from .data_extract import get_extract_population_data
-from ..osm.osm_surface import get_composed_classification
-# Filenames
-from ..parameters import get_population_urban_features_filename, get_population_training_validating_filename
+
 # Sprawl indices
 from ..sprawl.dispersion import compute_grid_dispersion
 from ..sprawl.landusemix import compute_grid_landusemix
-from ..sprawl.accessibility import compute_grid_accessibility
 
 
 def compute_urban_features(df_osm_built, df_osm_pois, x_square):
@@ -57,15 +56,15 @@ def compute_urban_features(df_osm_built, df_osm_pois, x_square):
 	x_square['m2_total_activity'] = df_osm_built.apply(lambda x: x.landuses_m2['activity'] * x.building_ratio, axis=1).sum()
 
 	### M^2 footprint 
-	df_osm_built_selection = df_osm_built[ df_osm_built.composed_classification.isin(['residential']) ]
+	df_osm_built_selection = df_osm_built[ df_osm_built.classification.isin(['residential']) ]
 	x_square['m2_footprint_residential'] = 0 if df_osm_built_selection.empty else df_osm_built_selection.apply(lambda x: x.geometry.area * x.building_ratio, axis=1).sum()
-	df_osm_built_selection = df_osm_built[ df_osm_built.composed_classification.isin(['activity']) ]
+	df_osm_built_selection = df_osm_built[ df_osm_built.classification.isin(['activity']) ]
 	x_square['m2_footprint_activity'] = 0 if df_osm_built_selection.empty else df_osm_built_selection.apply(lambda x: x.geometry.area * x.building_ratio, axis=1).sum()
-	df_osm_built_selection = df_osm_built[ df_osm_built.composed_classification.isin(['mixed']) ]
+	df_osm_built_selection = df_osm_built[ df_osm_built.classification.isin(['mixed']) ]
 	x_square['m2_footprint_mixed'] = 0 if df_osm_built_selection.empty else df_osm_built_selection.apply(lambda x: x.geometry.area * x.building_ratio, axis=1).sum()
 
 	### Containing building types
-	count_ratio_by_classification = df_osm_built.groupby('composed_classification').building_ratio.sum()
+	count_ratio_by_classification = df_osm_built.groupby('classification').building_ratio.sum()
 	x_square['num_built_activity'] = count_ratio_by_classification.get('activity', 0)
 	x_square['num_built_residential'] = count_ratio_by_classification.get('residential',0)
 	x_square['num_built_mixed'] = count_ratio_by_classification.get('mixed',0)
@@ -148,20 +147,6 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, g
 	##################
 	### Additional urban features
 	##################	
-	log("Composed classification (Buildings + parts + POIs) calculation")
-	start = time.time()
-
-	# Calculate the composed classification
-	df_osm_built.containing_poi = df_osm_built.containing_poi.apply(lambda x: x if isinstance(x,list) else [])
-	df_osm_built.activity_category = df_osm_built.activity_category.apply(lambda x: x if isinstance(x,list) else [])
-
-	df_osm_built['composed_classification'] = df_osm_built.apply(lambda x: get_composed_classification( x, df_osm_pois.loc[x.containing_poi] ).classification, axis=1 )
-	df_osm_built.loc[ df_osm_built.containing_poi.apply(lambda x: len(x)==0 ), "containing_poi" ] = np.nan
-	df_osm_built.loc[ df_osm_built.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
-
-	end = time.time()
-	log("Composed classification (Buildings + parts + POIs) calculation time: "+str(end-start) )
-
 	# Compute the urban features for each square
 	log("Urban features calculation")
 	start = time.time()
