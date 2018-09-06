@@ -7,6 +7,7 @@ import pandas as pd
 import geopandas as gpd
 import numpy as np
 from osmnx.utils import log
+from shapely.geometry import Point
 
 from ..osm.core import get_route_graph, get_processed_osm_data
 from .landusemix import compute_grid_landusemix
@@ -33,7 +34,6 @@ def get_indices_grid(df_osm_built, df_osm_building_parts, df_osm_pois, step=100)
 	geopandas.GeoDataFrame
 		regular grid
 	"""
-	from shapely.geometry import Point
 	# Get bounding box
 	west, south, east, north = pd.concat( [ df_osm_built, df_osm_building_parts, df_osm_pois ] ).total_bounds
 	# Create indices
@@ -66,7 +66,7 @@ def process_spatial_indices(city_ref_file=None, region_args={"polygon":None, "pl
 	region_args : dict
 		contains the information to retrieve the region of interest as the following:
 			polygon : shapely Polygon or MultiPolygon
-				geographic shape to fetch the landuse footprints within
+				geographic shape to fetch the land use footprints within
 			place : string or dict
 				query string or structured query dict to geocode/download
 			which_result : int
@@ -167,5 +167,5 @@ def process_spatial_indices(city_ref_file=None, region_args={"polygon":None, "pl
 		return df_indices
 
 	except Exception as e:
-		log("Could not compute the spatial indices. An exception occured: " + str(e))
+		log("Could not compute the spatial indices. An exception occurred: " + str(e))
 		return None

@@ -11,6 +11,10 @@ import numpy as np
 from shapely.geometry import Polygon
 from shapely.geometry import Point
 
+from ..settings import storage_folder
+
+# Format for load/save the geo-data ['geojson','shp']
+geo_format = 'geojson' # 'shp'
 
 
 def get_population_extract_filename(city_ref_file, data_source):
@@ -62,7 +66,7 @@ def get_population_urban_features_filename(city_ref_file, data_source):
 
 def get_population_training_validating_filename(city_ref_file, data_source="training"):
 	"""
-	Get population normalised urban features extract and population densities filename for input city
+	Get population normalized urban features extract and population densities filename for input city
 	Stored in Numpy.Arrays
 
 	Parameters
@@ -88,7 +92,7 @@ def get_aggregated_squares(df_insee, step=1000., conserve_squares_info=False):
 	"""
 	Aggregates input population data in squares of 5x5
 	Assumption: Input squares 200m by 200m
-	INSEE data contains column 'idINSPIRE' which denotes in epsg:3035 the northing/easting coordinates of the south-west box endpoint
+	INSEE data contains column 'idINSPIRE' which denotes in EPSG:3035 the northing/easting coordinates of the south-west box endpoint
 	If conserve squares information is True, the information relative to each original square is kept
 	Output: Aggregated squares of 1km by 1km
 
@@ -194,7 +198,7 @@ def get_aggregated_squares(df_insee, step=1000., conserve_squares_info=False):
 
 def population_downscaling_validation(df_osm_built, df_insee):
 	"""
-	Validates the poplation downscaling estimation by means of aggregating the sum of buildings estimated population lying within each population square
+	Validates the population downscaling estimation by means of aggregating the sum of buildings estimated population lying within each population square
 	Allows to compare the real population count with the estimated population lying within each square
 	Updates new column 'pop_estimation' for each square in the population data frame
 

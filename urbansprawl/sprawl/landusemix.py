@@ -80,7 +80,7 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 	pandas.DataFrame
 		land use mix indices
 	"""
-	log("Land use mix calculation")
+	log("Calculating land use mix indices")
 	start = time.time()
 
 	# Get the bandwidth, related to 'walkable distances'
@@ -145,8 +145,7 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 	df_indices[index_column] = df_indices.apply(lambda x: _land_use_mix(x.activity_pdf, x.residential_pdf), axis=1 )
 	df_indices["landuse_intensity"] = df_indices.apply(lambda x: (x.activity_pdf + x.residential_pdf)/2., axis=1 )
 	
-	end = time.time()
-	log("Land use mix calculation time: "+str(end-start))
+	log("Done: Land use mix indices. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start)) )
 	
 ####
 

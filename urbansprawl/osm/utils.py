@@ -146,13 +146,13 @@ def sanity_check_height_tags(df_osm):
 						tot_inches = float(feet)*12 + float(inches)
 						# Return meters equivalent
 						return tot_inches * 0.0254
-					except: # None. Uncorrect tag
+					except: # None. Incorrect tag
 						return None
 		return value
 
 	# Available height tags
 	available_height_tags = [ col for col in height_tags if col in df_osm.columns ]
-	# Applymap sanity check
+	# Apply-map sanity check
 	df_osm[ available_height_tags ] = df_osm[ available_height_tags ].applymap(sanity_check)
 
 def associate_structures(df_osm_encompassing_structures, df_osm_structures, operation='contains', column='containing_'):

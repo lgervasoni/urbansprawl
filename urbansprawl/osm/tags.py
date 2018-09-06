@@ -13,7 +13,7 @@ columns_osm_tag = [ "amenity", "landuse", "leisure", "shop", "man_made", "buildi
 building_parts_to_filter = ["no", "roof"]
 
 #################################################################
-### Classiy uses according to OpenStreetMap wiki
+### Classify uses according to OpenStreetMap wiki
 #################################################################
 """
 Possible tags classification:

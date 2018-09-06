@@ -6,6 +6,7 @@
 import osmnx as ox
 import pandas as pd
 import numpy as np
+import time
 import os.path
 from osmnx.utils import log
 
@@ -107,6 +108,8 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	"""
 	log("OSM data requested for city: " + str(city_ref_file) )
 
+	start_time = time.time()
+
 	if (city_ref_file):
 		geo_poly_file, geo_poly_parts_file, geo_point_file = get_dataframes_filenames(city_ref_file)
 
@@ -141,6 +144,7 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	df_osm_built, polygon, north, south, east, west = create_buildings_gdf_from_input(date=date_query, polygon=polygon, place=place, which_result=which_result, point=point, address=address, distance=distance, north=north, south=south, east=east, west=west)
 	df_osm_built["osm_id"] = df_osm_built.index
 	df_osm_built.reset_index(drop=True, inplace=True)
+	df_osm_built.gdf_name = str(city_ref_file) + '_buildings' if not city_ref_file is None else 'buildings'
 	##########################
 	### Overpass query: Land use polygons. Aid to perform buildings land use inference
 	##########################
@@ -150,12 +154,14 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	columns_of_interest = ["osm_id", "geometry", "landuse"]
 	df_osm_lu.drop( [ col for col in list( df_osm_lu.columns ) if not col in columns_of_interest ], axis=1, inplace=True )
 	df_osm_lu.reset_index(drop=True, inplace=True)
+	df_osm_lu.gdf_name = str(city_ref_file) + '_landuse' if not city_ref_file is None else 'landuse'
 	##########################
 	### Overpass query: POIs
 	##########################
 	df_osm_pois = create_pois_gdf(date=date_query, polygon=polygon, north=north, south=south, east=east, west=west)
 	df_osm_pois["osm_id"] = df_osm_pois.index
 	df_osm_pois.reset_index(drop=True, inplace=True)
+	df_osm_pois.gdf_name = str(city_ref_file) + '_points' if not city_ref_file is None else 'points'
 	##########
 	### Overpass query: Building parts. Allow to calculate the real amount of M^2 for each building
 	##########
@@ -167,21 +173,20 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 		df_osm_building_parts = df_osm_building_parts[ (~ df_osm_building_parts["building:part"].isin(building_parts_to_filter) ) & (~ df_osm_building_parts["building:part"].isnull() ) ]
 	df_osm_building_parts["osm_id"] = df_osm_building_parts.index
 	df_osm_building_parts.reset_index(drop=True, inplace=True)
+	df_osm_building_parts.gdf_name = str(city_ref_file) + '_building_parts' if not city_ref_file is None else 'building_parts'
 	
-	log("Done: OSM data request")
+	log("Done: OSM data requests. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 
 	####################################################
 	### Sanity check of height tags
 	####################################################
+	start_time = time.time()
+
 	sanity_check_height_tags(df_osm_built)
 	sanity_check_height_tags(df_osm_building_parts)
 
 	def remove_nan_dict(x): # Remove entries with NaN values
 		return { k:v for k, v in x.items() if pd.notnull(v) }
-
-	#print( [ c for c in height_tags if c in df_osm_building_parts.columns ] )
-	#available_height_tags = [ col for col in height_tags if col in df_osm_building_parts.columns ]
-	#print( df_osm_building_parts[ [ c for c in height_tags if c in df_osm_building_parts.columns ] ].apply(lambda x: remove_nan_dict(x.to_dict() ), axis=1) )
 
 	df_osm_built['height_tags'] = df_osm_built[ [ c for c in height_tags if c in df_osm_built.columns ] ].apply(lambda x: remove_nan_dict(x.to_dict() ), axis=1)
 	df_osm_building_parts['height_tags'] = df_osm_building_parts[ [ c for c in height_tags if c in df_osm_building_parts.columns ] ].apply(lambda x: remove_nan_dict(x.to_dict() ), axis=1)
@@ -196,11 +201,14 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	columns_of_interest = columns_osm_tag + ["osm_id", "geometry"]
 	df_osm_pois.drop( [ col for col in list( df_osm_pois.columns ) if not col in columns_of_interest ], axis=1, inplace=True )	
 
-	log('Done: Sanity check + drop unnecessary columns')	
+	
+	log('Done: Height tags sanity check and unnecessary columns have been dropped. Elapsed time (H:M:S): ' + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 
 	###########
 	### Classification
 	###########
+	start_time = time.time()
+
 	df_osm_built['classification'], df_osm_built['key_value'] = list( zip(*df_osm_built.apply( classify_tag, axis=1) ) )
 	df_osm_pois['classification'], df_osm_pois['key_value'] = list( zip(*df_osm_pois.apply( classify_tag, axis=1) ) )
 	df_osm_building_parts['classification'], df_osm_building_parts['key_value'] = list( zip(*df_osm_building_parts.apply( classify_tag, axis=1) ) )
@@ -214,11 +222,13 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	# Building parts will acquire its containing building land use if it is not available
 	df_osm_building_parts.loc[ df_osm_building_parts.classification.isin(["infer","other"]), "classification" ] = None
 
-	log('Done: OSM tags classification')
+	log('Done: OSM tags classification. Elapsed time (H:M:S): ' + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 	
 	###########
 	### Remove already used tags
 	###########
+	start_time = time.time()
+
 	df_osm_built.drop( [ c for c in columns_osm_tag if c in df_osm_built.columns ], axis=1, inplace=True )
 	df_osm_pois.drop( [ c for c in columns_osm_tag if c in df_osm_pois.columns ], axis=1, inplace=True )
 	df_osm_building_parts.drop( [ c for c in columns_osm_tag if c in df_osm_building_parts.columns ], axis=1, inplace=True)
@@ -235,11 +245,13 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	# Drop buildings with an area lower than a threshold
 	df_osm_built.drop( df_osm_built[ df_osm_built.geometry.area < kwargs["minimum_m2_building_area"] ].index, inplace=True )
 
-	log('Done: Geometries re-projection')
+	log('Done: Geometries re-projection. Elapsed time (H:M:S): ' + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 
 	####################################################
 	### Infer buildings land use (under uncertainty)
 	####################################################
+	start_time = time.time()
+
 	compute_landuse_inference(df_osm_built, df_osm_lu)
 	# Free space
 	del df_osm_lu
@@ -248,11 +260,13 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	assert( len( df_osm_built[df_osm_built.classification.isnull()] ) == 0 )
 	assert( len( df_osm_pois[df_osm_pois.classification.isnull()] ) == 0 )
 
-	log('Done: Land use deduction')
+	log('Done: Land use deduction. Elapsed time (H:M:S): ' + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 
 	####################################################
 	### Associate for each building, its containing building parts and Points of interest
 	####################################################
+	start_time = time.time()
+
 	associate_structures(df_osm_built, df_osm_building_parts, operation='contains', column='containing_parts')
 	associate_structures(df_osm_built, df_osm_pois, operation='intersects', column='containing_poi')
 
@@ -261,34 +275,37 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	df_osm_pois['activity_category'] = df_osm_pois.apply(lambda x: classify_activity_category(x.key_value), axis=1)
 	df_osm_building_parts['activity_category'] = df_osm_building_parts.apply(lambda x: classify_activity_category(x.key_value), axis=1)
 
-	log('Done: Building parts association + activity categorization')
+	log('Done: Building parts association and activity categorization. Elapsed time (H:M:S): ' + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 
 	####################################################
 	### Associate effective number of levels, and measure the surface dedicated to each land use per building
 	####################################################
 	if (kwargs["associate_landuses_m2"]):
+		start_time = time.time()
+
 		default_height = kwargs["default_height"]
 		meters_per_level = kwargs["meters_per_level"]
 		mixed_building_first_floor_activity = kwargs["mixed_building_first_floor_activity"]
 		compute_landuses_m2(df_osm_built, df_osm_building_parts, df_osm_pois, default_height=default_height, meters_per_level=meters_per_level, mixed_building_first_floor_activity=mixed_building_first_floor_activity)
 
-	df_osm_built.loc[ df_osm_built.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
-	df_osm_pois.loc[ df_osm_pois.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
-	df_osm_building_parts.loc[ df_osm_building_parts.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
-
-	if (kwargs["associate_landuses_m2"]):
 		# Set the composed classification given, for each building, its containing Points of Interest and building parts classification
 		df_osm_built.loc[ df_osm_built.apply(lambda x: x.landuses_m2["activity"]>0 and x.landuses_m2["residential"]>0, axis=1 ), "classification" ] = "mixed"
 
-	log('Done: Land uses surface association')
+		log('Done: Land uses surface association. Elapsed time (H:M:S): ' + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
+
+	df_osm_built.loc[ df_osm_built.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
+	df_osm_pois.loc[ df_osm_pois.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
+	df_osm_building_parts.loc[ df_osm_building_parts.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan		
 
 	##########################
 	### Overpass query: Street network graph
 	##########################
 	if (kwargs["retrieve_graph"]): # Save graph for input city shape
+		start_time = time.time()
+
 		get_route_graph(city_ref_file, date=date_query, polygon=polygon, north=north, south=south, east=east, west=west, force_crs=df_osm_built.crs)
 
-	log('Done: Street network graph retrieval')
+		log('Done: Street network graph retrieval. Elapsed time (H:M:S): ' + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 
 	##########################
 	### Store file ?

@@ -408,6 +408,9 @@ def retrieve_route_graph(city_ref, date="", polygon=None, north=None, south=None
 				log("Need an input to retrieve graph")
 				assert(False)
 
+			# Set graph name
+			G.graph['name'] = str(city_ref) + '_street_network' if not city_ref is None else 'street_network'
+
 			# Project graph
 			G = ox.project_graph(G, to_crs=force_crs)
 			

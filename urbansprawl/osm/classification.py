@@ -108,7 +108,7 @@ def classify_landuse_inference(land_use):
 		returns the land use classification
 	"""
 	for key, value in landuse_classification.items():
-		# key: Classification ; value: keys contained in the classifcation
+		# key: Classification ; value: keys contained in the classification
 		if (land_use in value):
 			return key
 	# Uncertain case

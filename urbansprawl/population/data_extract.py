@@ -77,7 +77,7 @@ def get_population_df(pop_shapefile, pop_data_file, data_source, to_crs, poly_gd
 	# Read population data
 	df_pop = gpd.read_file(pop_shapefile)
 		
-	### Extract region of interest (epsg 4326)
+	### Extract region of interest (EPSG 4326)
 	# Filter geometries not contained in bounding box
 	df_pop = get_df_extract(df_pop, poly_gdf)
 
@@ -101,7 +101,7 @@ def get_population_df(pop_shapefile, pop_data_file, data_source, to_crs, poly_gd
 def get_extract_population_data(city_ref, data_source, pop_shapefile=None, pop_data_file=None, to_crs={'init': 'epsg:4326'}, df_osm_built=None):
 	"""
 	Get data population extract of desired data source for input city
-	The population data frame is projected to the desired coordiante reference system
+	The population data frame is projected to the desired coordinate reference system
 	Stores the extracted shapefile
 	Returns the stored population data for input 'data source' and 'city reference' if it was previously stored
 

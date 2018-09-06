@@ -148,7 +148,7 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, g
 	### Additional urban features
 	##################	
 	# Compute the urban features for each square
-	log("Urban features calculation")
+	log("Calculating urban features")
 	start = time.time()
 
 	df_insee_urban_features = df_insee_urban_features.apply(lambda x: compute_urban_features(df_osm_built, df_osm_pois, x), axis=1)
@@ -156,11 +156,10 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, g
 	df_insee_urban_features.fillna(0, inplace=True)
 	df_insee_urban_features.crs = df_insee.crs
 
-	end = time.time()
-	log("Urban features calculation time: "+str(end-start) )
-
 	# Save to GeoJSON file (no projection conserved, then use EPSG 4326)
 	ox.project_gdf(df_insee_urban_features, to_latlong=True).to_file( get_population_urban_features_filename(city_ref, data_source), driver='GeoJSON' )
+
+	log("Done: Urban features calculation. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start)) )
 	
 	return df_insee_urban_features
 
@@ -170,7 +169,7 @@ def get_training_testing_data(city_ref, df_insee_urban_features=None):
 	Returns the Y and X arrays for training/testing population downscaling estimates.
 
 	Y contains vectors with the correspondent population densities
-	X contains vectors with normalised urban features
+	X contains vectors with normalized urban features
 	X_columns columns referring to X values
 	Numpy arrays are stored locally
 
@@ -194,11 +193,12 @@ def get_training_testing_data(city_ref, df_insee_urban_features=None):
 		# Project to UTM coordinates
 		return data["Y"], data["X"], data["X_columns"]
 
-	log("Urban population training+validation data/features calculation for city: " + city_ref)
+	log("Calculating urban training+validation data/features for city: " + city_ref)
+	start = time.time()
 
-	# Select columns to normalise
+	# Select columns to normalize
 	columns_to_normalise = [col for col in df_insee_urban_features.columns if "num_" in col or "m2_" in col or "dispersion" in col or "accessibility" in col]
-	# Normalise selected columns
+	# Normalize selected columns
 	df_insee_urban_features.loc[:,columns_to_normalise] = df_insee_urban_features.loc[:,columns_to_normalise].apply(lambda x: x / x.max() , axis=0)
 
 	# By default, idINSPIRE for created squares (0 population count) is 0: Change for 'CRS' string: Coherent with squares aggregation procedure (string matching)
@@ -207,9 +207,9 @@ def get_training_testing_data(city_ref, df_insee_urban_features=None):
 	# Aggregate 5x5 squares: Get all possible aggregations (step of 200 meters = length of individual square)
 	aggregated_df_insee_urban_features = get_aggregated_squares(ox.project_gdf(df_insee_urban_features, to_crs="+init=epsg:3035"), step=200., conserve_squares_info=True)
 
-	# X values: Vector <x1,x2, ... , xn> with normalised urban features
+	# X values: Vector <x1,x2, ... , xn> with normalized urban features
 	X_values = []
-	# Y values: Vector <y1, y2, ... , ym> with normalised population densities. m=25
+	# Y values: Vector <y1, y2, ... , ym> with normalized population densities. m=25
 	Y_values = []
 
 	# For each <Indices> combination, create a X and Y vector
@@ -222,7 +222,7 @@ def get_training_testing_data(city_ref, df_insee_urban_features=None):
 		if (all (pd.isna(population_densities)) ): # If sum of population count is 0, remove (NaN values)
 			continue
 
-		# X input: Normalised urban features
+		# X input: Normalized urban features
 		urban_features = square_info[ [col for col in square_info.columns if col not in ['idINSPIRE','geometry','pop_count']] ].values
 
 		# Append X, Y
@@ -240,7 +240,7 @@ def get_training_testing_data(city_ref, df_insee_urban_features=None):
 	# Save to file
 	np.savez( get_population_training_validating_filename(city_ref), X=X_values, Y=Y_values, X_columns=X_values_columns)
 	
-	log("Urban population training+tesing data/features done")
+	log("Done: urban training+validation data/features. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start)) )
 
 	return Y_values, X_values, X_values_columns
 
@@ -250,7 +250,7 @@ def get_Y_X_features_population_data(cities_selection=None, cities_skip=None):
 	It gathers either a selection of cities or all stored cities but a selected list to skip
 
 	Y contains vectors with the correspondent population densities
-	X contains vectors with normalised urban features
+	X contains vectors with normalized urban features
 	X_columns columns referring to X values
 	Numpy arrays are previously stored
 

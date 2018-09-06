@@ -125,7 +125,7 @@ def verify_divide_edge(G, u, v, key, data, node_creation_counter, max_edge_lengt
 	----------
 
 	"""
-	# Input: Two communidated nodes (u, v)
+	# Input: Two communicated nodes (u, v)
 	if ( data["length"] <= max_edge_length ): # Already satisfy condition?
 		return
 	

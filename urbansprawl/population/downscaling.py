@@ -8,7 +8,7 @@ import geopandas as gpd
 
 def proportional_population_downscaling(df_osm_built, df_insee):
 	"""
-	Performs a proportional population downscaling considerig the surface dedicated to residential land use
+	Performs a proportional population downscaling considering the surface dedicated to residential land use
 	Associates the estimated population to each building in column 'population'
 
 	Parameters

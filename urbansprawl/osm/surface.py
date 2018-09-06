@@ -169,7 +169,7 @@ def calculate_landuse_m2(building, mixed_building_first_floor_activity=True):
 
 def associate_levels(df_osm, default_height, meters_per_level):
 	""" 
-	Calculate the effectiver number of levels for each input building
+	Calculate the effective number of levels for each input building
 	Under missing tag data, default values are used
 	A column ['building_levels'] is added to the data frame
 
@@ -315,5 +315,5 @@ def compute_landuses_m2(df_osm_built, df_osm_building_parts, df_osm_pois, defaul
 	df_osm_built.drop( ["full_parts"], axis=1, inplace=True )
 	df_osm_built.drop( ["pois_full_parts"], axis=1, inplace=True )
 
-	# Sanity check: For each building land use classfication, its M^2 associated to these land uses must be greater than 1
+	# Sanity check: For each building land use classification, its M^2 associated to these land uses must be greater than 1
 	df_osm_built["classification"] = df_osm_built.apply(lambda x: classification_sanity_check(x), axis=1 )

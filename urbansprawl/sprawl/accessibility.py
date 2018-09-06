@@ -48,7 +48,7 @@ def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args
 			fixed_distance_max_travel_distance: int
 				(fixed distance) maximum distance tolerated (cut&branch) when searching for the activities
 			fixed_distance_max_num_activities: int
-				(fixed distance) cut iteration if the number of activites exceeds a threshold
+				(fixed distance) cut iteration if the number of activities exceeds a threshold
 			fixed_activities_min_number: int
 				(fixed activities) minimum number of activities required
 			fixed_activities_max_travel_distance : int
@@ -60,7 +60,7 @@ def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args
 	int
 		number of activities found within a radius distance using the street network
 	"""
-	log("Accessibility calculation")
+	log("Calculating accessibility indices")
 	start = time.time()
 
 	# Assert that only one option is set
@@ -93,8 +93,8 @@ def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args
 	# Max number of subprocess allocations given its memory consumption
 	numbers = [ numb for numb in str(output) if numb in ["0","1","2","3","4","5","6","7","8","9"] ]
 	max_processes = int( ''.join(numbers) )
-	log("Max processes to allocate (consdering memory availability):"+str(max_processes) )
-	log("Numbero of available cores:"+str(num_cores) )
+	log("Maximum number of processes to allocate (considering memory availability): " + str(max_processes) )
+	log("Number of available cores: " + str(num_cores) )
 
 	##############
 	### Set chunks to run in parallel: If more core than allowed processes, divide chunks to run at most X processes
@@ -129,8 +129,7 @@ def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args
 	# Delete temporary folder
 	shutil.rmtree('temp')
 
-	end = time.time()
-	log("Accessibility calculation time: "+str(end-start))
+	log("Done: Accessibility indices. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start)) )
 
 ###############
 # Utils
@@ -138,7 +137,7 @@ def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args
 
 def prepare_data(G, df_osm_built, df_osm_pois, df_indices, num_processes, kw_arguments):
 	""" 
-	Pickles data to a temporary folder in order to achieve parallel accessibiltiy calculation
+	Pickles data to a temporary folder in order to achieve parallel accessibility calculation
 	A new subprocess will be created in order to minimize memory requirements
 
 	Parameters
