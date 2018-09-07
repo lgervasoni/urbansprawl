@@ -624,67 +624,6 @@ class InferLandUse(luigi.Task):
         buildings.to_file(self.output().path, driver="GeoJSON")
 
 
-class AssociateStructures(luigi.Task):
-    """Associate OpenStreetMap buildings with respectively building parts and
-    POIs : enrich the building GeoDataFrame with building parts and POIs data
-
-    Example:
-    ```
-    python -m luigi --local-scheduler --module urbansprawl.tasks
-    AssociateStructures --city valence-drome
-    ```
-
-    Attributes
-    ----------
-    city : str
-        City of interest
-    datapath : str
-        Indicates the folder where the task result has to be serialized
-    geoformat : str
-        Output file extension (by default: `GeoJSON`)
-    date_query : str
-        Date to which the OpenStreetMap data must be recovered (format:
-    AAAA-MM-DDThhmm)
-    srid : int
-        Geographical projection (default 4326, *i.e.* WGS84)
-    """
-    city = luigi.Parameter()
-    datapath = luigi.Parameter("./data")
-    geoformat = luigi.Parameter("geojson")
-    date_query = luigi.DateMinuteParameter(default=date.today())
-    srid = luigi.Parameter(default=4326)
-
-    def requires(self):
-        return {"buildings": InferLandUse(self.city, self.datapath,
-                                          self.geoformat, self.date_query,
-                                          self.srid),
-                "building-parts": SetupProjection(self.city, self.datapath,
-                                                  self.geoformat,
-                                                  self.date_query,
-                                                  "building-parts", self.srid),
-                "pois": SetupProjection(self.city, self.datapath,
-                                        self.geoformat, self.date_query,
-                                        "pois", self.srid)}
-
-    def output(self):
-        output_path = define_filename("associated-buildings",
-                                      self.city,
-                                      self.date_query.isoformat(),
-                                      self.datapath,
-                                      self.geoformat)
-        return luigi.LocalTarget(output_path)
-
-    def run(self):
-        buildings = gpd.read_file(self.input()["buildings"].path)
-        building_parts = gpd.read_file(self.input()["building-parts"].path)
-        pois = gpd.read_file(self.input()["pois"].path)
-        associate_structures(buildings, building_parts,
-                             operation='contains', column='containing_parts')
-        associate_structures(buildings, pois,
-                             operation='intersects', column='containing_poi')
-        buildings.to_file(self.output().path, driver="GeoJSON")
-
-
 class ComputeLandUse(luigi.Task):
     """Compute land use per building type (residential, activity or mixed)
 
@@ -721,9 +660,9 @@ class ComputeLandUse(luigi.Task):
     meters_per_level = luigi.Parameter(3)
 
     def requires(self):
-        return {"buildings": AssociateStructures(self.city, self.datapath,
-                                                 self.geoformat,
-                                                 self.date_query, self.srid),
+        return {"buildings": InferLandUse(self.city, self.datapath,
+                                          self.geoformat, self.date_query,
+                                          self.srid),
                 "building-parts": SetupProjection(self.city, self.datapath,
                                                   self.geoformat,
                                                   self.date_query,
@@ -744,6 +683,10 @@ class ComputeLandUse(luigi.Task):
         buildings = gpd.read_file(self.input()["buildings"].path)
         building_parts = gpd.read_file(self.input()["building-parts"].path)
         pois = gpd.read_file(self.input()["pois"].path)
+        associate_structures(buildings, building_parts,
+                             operation='contains', column='containing_parts')
+        associate_structures(buildings, pois,
+                             operation='intersects', column='containing_poi')
         buildings['activity_category'] = buildings.apply(lambda x: classify_activity_category(x.key_value), axis=1)
         building_parts['activity_category'] = building_parts.apply(lambda x: classify_activity_category(x.key_value), axis=1)
         pois['activity_category'] = pois.apply(lambda x: classify_activity_category(x.key_value), axis=1)
@@ -757,7 +700,11 @@ class ComputeLandUse(luigi.Task):
         building_parts.loc[building_parts.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
         pois.loc[pois.activity_category.apply(lambda x: len(x)==0 ), "activity_category" ] = np.nan
         # Set the composed classification given, for each building, its containing Points of Interest and building parts classification
-        buildings.loc[buildings.apply(lambda x: x.landuses_m2["activity"]>0 and x.landuses_m2["residential"]>0, axis=1 ), "classification" ] = "mixed"
+        buildings.loc[buildings.apply(lambda x: x.landuses_m2["activity"]>0 and
+        x.landuses_m2["residential"]>0, axis=1 ), "classification" ] = "mixed"
+        clean_list_in_geodataframe_column(buildings, "containing_parts")
+        clean_list_in_geodataframe_column(buildings, "containing_poi")
+        clean_list_in_geodataframe_column(buildings, "activity_category")
         buildings.to_file(self.output().path, driver="GeoJSON")
 
 
