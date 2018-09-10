@@ -50,6 +50,7 @@ COLUMNS_OF_INTEREST_LANDUSES = ["osm_id", "geometry", "landuse"]
 HEIGHT_TAGS = [ "min_height", "height", "min_level", "levels",
                 "building:min_height", "building:height", "building:min_level",
                 "building:levels", "building:levels:underground" ]
+BUILDING_PARTS_TO_FILTER = ["no", "roof"]
 MINIMUM_M2_BUILDING_AREA = 9.0
 
 def define_filename(description, city, date, datapath, geoformat):
@@ -206,9 +207,13 @@ class GetData(luigi.Task):
             gdf = create_building_parts_gdf(date=date,
                                             north=north, south=south,
                                             east=east, west=west)
-            columns_to_drop = [col for col in list(gdf.columns)
-                               if not col in COLUMNS_OF_INTEREST]
-            gdf.drop(columns_to_drop, axis=1, inplace=True)
+            if ("building" in gdf.columns):
+                gdf = gdf[(~gdf["building:part"].isin(BUILDING_PARTS_TO_FILTER)) & (~gdf["building:part"].isnull() ) & (gdf["building"].isnull()) ]
+            else:
+                gdf = gdf[ (~gdf["building:part"].isin(BUILDING_PARTS_TO_FILTER) ) & (~gdf["building:part"].isnull() ) ]
+            gdf.drop(["nodes"], axis=1, inplace=True)
+            gdf["osm_id"] = gdf.index
+            gdf.reset_index(drop=True, inplace=True)
         elif self.table == "pois":
             gdf = create_pois_gdf(date=date,
                                   north=north, south=south,
@@ -267,8 +272,8 @@ class SanityCheck(luigi.Task):
 
     def requires(self):
         if self.table in ["buildings", "building-parts"]:
-            return GetData(self.city, self.datapath, self.geoformat,
-                           self.date_query, self.table)
+            return GetData(self.city, self.datapath,
+                           self.geoformat, self.date_query, self.table)
         else:
             raise ValueError(("Please provide a valid table name (either "
                               "'buildings' or 'building-parts')."))
@@ -334,8 +339,8 @@ class GetClassifiedInfo(luigi.Task):
             return SanityCheck(self.city, self.datapath,
                                self.geoformat, self.date_query, self.table)
         elif self.table == "pois":
-            return GetData(self.city, self.datapath, self.geoformat,
-                           self.date_query, self.table)
+            return GetData(self.city, self.datapath,
+                           self.geoformat, self.date_query, self.table)
         else:
             raise ValueError(("Please provide a valid table name (either "
                               "'buildings', 'building-parts', 'pois')."))
@@ -410,8 +415,8 @@ class SetupProjection(luigi.Task):
                                      self.geoformat, self.date_query,
                                      self.table)
         elif self.table == "land-uses":
-            return GetData(self.city, self.datapath, self.geoformat,
-                           self.date_query, self.table)
+            return GetData(self.city, self.datapath,
+                           self.geoformat, self.date_query, self.table)
         else:
             raise ValueError(("Please provide a valid table name (either "
                               "'buildings', 'building-parts', "
