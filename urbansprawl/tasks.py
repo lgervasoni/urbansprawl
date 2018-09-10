@@ -149,14 +149,14 @@ class GetBoundingBox(luigi.Task):
         city_gdf.to_file(self.output().path, driver="GeoJSON")
 
 
-class GetBuildings(luigi.Task):
-    """Give a raw version of OpenStreetMap buildings through an Overpass API
-    query
+class GetData(luigi.Task):
+    """Give a raw version of OpenStreetMap items through an Overpass API query
+    (buildlings, building parts, POIs or land uses)
 
     Example:
     ```
-    python -m luigi --local-scheduler --module urbansprawl.tasks GetBuildings
-    --city valence-drome --date-query 2017-01-01T1200
+    python -m luigi --local-scheduler --module urbansprawl.tasks GetData
+    --city valence-drome --date-query 2017-01-01T1200 --table buildings
     ```
 
     Attributes
@@ -170,11 +170,13 @@ class GetBuildings(luigi.Task):
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
     AAAA-MM-DDThhmm)
+
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
+    table = luigi.Parameter("buildings")
 
     def requires(self):
         """Gives the task(s) that are needed to accomplish the current one. It
@@ -183,7 +185,7 @@ class GetBuildings(luigi.Task):
         return GetBoundingBox(self.city, self.datapath)
 
     def output(self):
-        output_path = define_filename("buildings",
+        output_path = define_filename(self.table,
                                       self.city,
                                       self.date_query.isoformat(),
                                       self.datapath,
@@ -195,170 +197,43 @@ class GetBuildings(luigi.Task):
         north, south, east, west = city_gdf.loc[0, ["bbox_north", "bbox_south",
                                                     "bbox_east", "bbox_west"]]
         date = "[date:'" + str(self.date_query) + "']"
-        buildings = create_buildings_gdf(date=date,
-                                         north=north, south=south,
-                                         east=east, west=west)
-        buildings.drop(["nodes"], axis=1, inplace=True)
-        buildings.to_file(self.output().path, driver="GeoJSON")
-
-class GetBuildingParts(luigi.Task):
-    """Give a raw version of OpenStreetMap building parts through an Overpass API
-    query
-
-    Example:
-    ```
-    python -m luigi --local-scheduler --module urbansprawl.tasks GetBuildingParts
-    --city valence-drome --date-query 2017-01-01T1200
-    ```
-
-    Attributes
-    ----------
-    city : str
-        City of interest
-    datapath : str
-        Indicates the folder where the task result has to be serialized
-    geoformat : str
-        Output file extension (by default: `GeoJSON`)
-    date_query : str
-        Date to which the OpenStreetMap data must be recovered (format:
-    AAAA-MM-DDThhmm)
-    """
-    city = luigi.Parameter()
-    datapath = luigi.Parameter("./data")
-    geoformat = luigi.Parameter("geojson")
-    date_query = luigi.DateMinuteParameter(default=date.today())
-
-    def requires(self):
-        return GetBoundingBox(self.city, self.datapath)
-
-    def output(self):
-        output_path = define_filename("building-part",
-                                      self.city,
-                                      self.date_query.isoformat(),
-                                      self.datapath,
-                                      self.geoformat)
-        return luigi.LocalTarget(output_path)
-
-    def run(self):
-        city_gdf = gpd.read_file(self.input().path)
-        north, south, east, west = city_gdf.loc[0, ["bbox_north", "bbox_south",
-                                                    "bbox_east", "bbox_west"]]
-        date = "[date:'" + str(self.date_query) + "']"
-        building_parts = create_building_parts_gdf(date=date,
-                                                   north=north, south=south,
-                                                   east=east, west=west)
-        columns_to_drop = [col for col in list(building_parts.columns)
-                           if not col in COLUMNS_OF_INTEREST]
-        building_parts.drop(["nodes"], axis=1, inplace=True)
-        building_parts.to_file(self.output().path, driver="GeoJSON")
-
-
-class GetPOIs(luigi.Task):
-    """Give a raw version of OpenStreetMap Points of Interest (POIs) through an
-    Overpass API query
-
-    Example:
-    ```
-    python -m luigi --local-scheduler --module urbansprawl.tasks GetPOIs
-    --city valence-drome --date-query 2017-01-01T1200
-    ```
-
-    Attributes
-    ----------
-    city : str
-        City of interest
-    datapath : str
-        Indicates the folder where the task result has to be serialized
-    geoformat : str
-        Output file extension (by default: `GeoJSON`)
-    date_query : str
-        Date to which the OpenStreetMap data must be recovered (format:
-    AAAA-MM-DDThhmm)
-    """
-    city = luigi.Parameter()
-    datapath = luigi.Parameter("./data")
-    geoformat = luigi.Parameter("geojson")
-    date_query = luigi.DateMinuteParameter(default=date.today())
-
-    def requires(self):
-        return GetBoundingBox(self.city, self.datapath)
-
-    def output(self):
-        output_path = define_filename("pois",
-                                      self.city,
-                                      self.date_query.isoformat(),
-                                      self.datapath,
-                                      self.geoformat)
-        return luigi.LocalTarget(output_path)
-
-    def run(self):
-        city_gdf = gpd.read_file(self.input().path)
-        north, south, east, west = city_gdf.loc[0, ["bbox_north", "bbox_south",
-                                                    "bbox_east", "bbox_west"]]
-        date = "[date:'" + str(self.date_query) + "']"
-        pois = create_pois_gdf(date=date,
-                               north=north, south=south,
-                               east=east, west=west)
-        columns_to_drop = [col for col in list(pois.columns)
-                           if not col in COLUMNS_OF_INTEREST_POIS]
-        pois.drop(columns_to_drop, axis=1, inplace=True)
-        pois["osm_id"] = pois.index
-        pois.reset_index(drop=True, inplace=True)
-        pois.to_file(self.output().path, driver="GeoJSON")
-
-
-class CreateLandUse(luigi.Task):
-    """Query the OpenStreetMap land uses with Overpass API
-
-    Example:
-    ```
-    python -m luigi --local-scheduler --module urbansprawl.tasks CreateLandUse
-    --city valence-drome
-    ```
-
-    Attributes
-    ----------
-    city : str
-        City of interest
-    datapath : str
-        Indicates the folder where the task result has to be serialized
-    geoformat : str
-        Output file extension (by default: `GeoJSON`)
-    date_query : str
-        Date to which the OpenStreetMap data must be recovered (format:
-    AAAA-MM-DDThhmm)
-    """
-    city = luigi.Parameter()
-    datapath = luigi.Parameter("./data")
-    geoformat = luigi.Parameter("geojson")
-    date_query = luigi.DateMinuteParameter(default=date.today())
-
-    def requires(self):
-        return GetBoundingBox(self.city, self.datapath)
-
-    def output(self):
-        output_path = define_filename("land-use",
-                                      self.city,
-                                      self.date_query.isoformat(),
-                                      self.datapath,
-                                      self.geoformat)
-        return luigi.LocalTarget(output_path)
-
-    def run(self):
-        city_gdf = gpd.read_file(self.input().path)
-        north, south, east, west = city_gdf.loc[0, ["bbox_north", "bbox_south",
-                                                    "bbox_east", "bbox_west"]]
-        date = "[date:'" + str(self.date_query) + "']"
-        landuses = create_landuse_gdf(date=date,
+        if self.table == "buildings":
+            gdf = create_buildings_gdf(date=date,
                                        north=north, south=south,
                                        east=east, west=west)
-        landuses = landuses[["landuse", "geometry"]]
-        landuses["osm_id"] = landuses.index
-        columns_to_drop = [col for col in list(landuses.columns)
+            gdf.drop(["nodes"], axis=1, inplace=True)
+        elif self.table == "building-parts":
+            gdf = create_building_parts_gdf(date=date,
+                                            north=north, south=south,
+                                            east=east, west=west)
+            columns_to_drop = [col for col in list(gdf.columns)
+                               if not col in COLUMNS_OF_INTEREST]
+            gdf.drop(columns_to_drop, axis=1, inplace=True)
+        elif self.table == "pois":
+            gdf = create_pois_gdf(date=date,
+                                  north=north, south=south,
+                                  east=east, west=west)
+            columns_to_drop = [col for col in list(gdf.columns)
+                               if not col in COLUMNS_OF_INTEREST_POIS]
+            gdf.drop(columns_to_drop, axis=1, inplace=True)
+            gdf["osm_id"] = gdf.index
+            gdf.reset_index(drop=True, inplace=True)
+        elif self.table == "land-uses":
+            gdf = create_landuse_gdf(date=date,
+                                     north=north, south=south,
+                                     east=east, west=west)
+            gdf = gdf[["landuse", "geometry"]]
+            gdf["osm_id"] = gdf.index
+            columns_to_drop = [col for col in list(gdf.columns)
                            if not col in COLUMNS_OF_INTEREST_LANDUSES]
-        landuses.drop(columns_to_drop, axis=1, inplace=True)
-        landuses.reset_index(drop=True, inplace=True)
-        landuses.to_file(self.output().path, driver="GeoJSON")
+            gdf.drop(columns_to_drop, axis=1, inplace=True)
+            gdf.reset_index(drop=True, inplace=True)
+        else:
+            raise ValueError(("Please provide a valid table name (either "
+                              "'buildings', 'building-parts', 'pois' "
+                              "or 'land-uses')."))
+        gdf.to_file(self.output().path, driver="GeoJSON")
+
 
 class SanityCheck(luigi.Task):
     """Check buildings and building parts GeoDataFrames, especially their
@@ -391,12 +266,9 @@ class SanityCheck(luigi.Task):
     table = luigi.Parameter(default="buildings")
 
     def requires(self):
-        if self.table == "buildings":
-            return GetBuildings(self.city, self.datapath,
-                                self.geoformat, self.date_query)
-        elif self.table == "building-parts":
-            return GetBuildingParts(self.city, self.datapath,
-                                    self.geoformat, self.date_query)
+        if self.table in ["buildings", "building-parts"]:
+            return GetData(self.city, self.datapath, self.geoformat,
+                           self.date_query, self.table)
         else:
             raise ValueError(("Please provide a valid table name (either "
                               "'buildings' or 'building-parts')."))
@@ -458,15 +330,12 @@ class GetClassifiedInfo(luigi.Task):
     table = luigi.Parameter(default="buildings")
 
     def requires(self):
-        if self.table == "buildings":
-            return SanityCheck(self.city, self.datapath,
-                               self.geoformat, self.date_query, self.table)
-        elif self.table == "building-parts":
+        if self.table in ["buildings", "building-parts"]:
             return SanityCheck(self.city, self.datapath,
                                self.geoformat, self.date_query, self.table)
         elif self.table == "pois":
-            return GetPOIs(self.city, self.datapath,
-                           self.geoformat, self.date_query)
+            return GetData(self.city, self.datapath, self.geoformat,
+                           self.date_query, self.table)
         else:
             raise ValueError(("Please provide a valid table name (either "
                               "'buildings', 'building-parts', 'pois')."))
@@ -541,8 +410,8 @@ class SetupProjection(luigi.Task):
                                      self.geoformat, self.date_query,
                                      self.table)
         elif self.table == "land-uses":
-            return CreateLandUse(self.city, self.datapath,
-                                 self.geoformat, self.date_query)
+            return GetData(self.city, self.datapath, self.geoformat,
+                           self.date_query, self.table)
         else:
             raise ValueError(("Please provide a valid table name (either "
                               "'buildings', 'building-parts', "
