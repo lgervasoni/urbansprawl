@@ -56,12 +56,12 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 
 	Parameters
 	----------
-	XX_YY : pandas.Panel
-		meshgrid with (x,y) reference points to calculate indices
-	kde_activities : pandas.DataFrame
-		Activity land use densities
-	kde_residential : pandas.DataFrame
-		Residential land use densities
+	df_indices : geopandas.GeoDataFrame
+		data frame containing the (x,y) reference points to calculate indices
+	df_osm_built : geopandas.GeoDataFrame
+		data frame containing the building's geometries
+	df_osm_pois : geopandas.GeoDataFrame
+		data frame containing the points' of interest geometries
 	kw_args: dict
 		additional keyword arguments for the indices calculation
 			walkable_distance : int
@@ -152,15 +152,25 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 def calculate_kde(points, df_osm_built, df_osm_pois=None, bandwidth=400, X_weights=None, pois_weight=9, log_weight=True):
 	"""
 	Evaluate the probability density function using Kernel Density Estimation of input geo-localized data
-	KDE's bandwidth related to walkable-distances
+	KDE's bandwidth stands for walkable distances
+	If input weights are given, a Weighted Kernel Density Estimation is carried out
 
 	Parameters
 	----------
-	df : pandas.DataFrame
-		input data with column [geometry] containing shapely geometries
-	XX_YY : pandas.Panel
-		meshgrid to evaluate the probability density function
-	bandwidth:
+	points : geopandas.GeoSeries
+		reference points to calculate indices
+	df_osm_built : geopandas.GeoDataFrame
+		data frame containing the building's geometries
+	df_osm_pois : geopandas.GeoDataFrame
+		data frame containing the points' of interest geometries
+	bandwidth: int
+		bandwidth value to be employed on the Kernel Density Estimation
+	X_weights : pandas.Series
+		indicates the weight for each input building (e.g. surface)
+	pois_weight : int
+		weight assigned to points of interest
+	log_weight : bool
+		if indicated, applies a log transformation to input weight values
 
 	Returns
 	----------

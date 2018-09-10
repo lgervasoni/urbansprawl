@@ -29,12 +29,14 @@ def compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, kw_args
 
 	Parameters
 	----------
-	XX_YY : pandas.Panel
-		meshgrid with (x,y) reference points to calculate indices
+	df_indices : geopandas.GeoDataFrame
+		data frame containing the (x,y) reference points to calculate indices
 	G : networkx multidigraph
 		input graph to calculate accessibility
-	df : pandas.DataFrame
-		data with geo-referenced activity land uses
+	df_osm_built : geopandas.GeoDataFrame
+		data frame containing the building's geometries and corresponding land uses
+	df_osm_pois : geopandas.GeoDataFrame
+		data frame containing the points' of interest geometries
 	kw_args: dict
 		additional keyword arguments for the indices calculation
 			fixed_distance : bool
@@ -206,7 +208,9 @@ def associate_activities_closest_node(G, df_activities_built, df_activities_pois
 	G : networkx multidigraph
 		input graph to calculate accessibility
 	df_activities_built : pandas.DataFrame
-		data selection of activity land uses
+		data selection of buildings with activity uses
+	df_activities_pois : pandas.DataFrame
+		data selection of points of interest with activity uses
 
 	Returns
 	----------
