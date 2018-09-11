@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import time
 import os.path
-from osmnx.utils import log
+from osmnx import log
 
 from .overpass import create_landuse_gdf, create_pois_gdf, create_building_parts_gdf, create_buildings_gdf_from_input, retrieve_route_graph
 from .tags import columns_osm_tag, height_tags, building_parts_to_filter
@@ -47,7 +47,7 @@ def get_route_graph(city_ref, date="", polygon=None, north=None, south=None, eas
 	"""
 	return retrieve_route_graph(city_ref, date, polygon, north, south, east, west, force_crs)
 
-def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "place":None, "which_result":1, "point":None, "address":None, "distance":None, "north":None, "south":None, "east":None, "west":None},
+def get_processed_osm_data(city_ref=None, region_args={"polygon":None, "place":None, "which_result":1, "point":None, "address":None, "distance":None, "north":None, "south":None, "east":None, "west":None},
 			kwargs={"retrieve_graph":True, "default_height":3, "meters_per_level":3, "associate_landuses_m2":True, "mixed_building_first_floor_activity":True, "minimum_m2_building_area":9, "date":None}):
 	"""
 	Retrieves buildings, building parts, and Points of Interest associated with a residential/activity land use from OpenStreetMap data for input city
@@ -58,7 +58,7 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 
 	Parameters
 	----------
-	city_ref_file : str
+	city_ref : str
 		Name of input city / region
 	region_args : dict
 		contains the information to retrieve the region of interest as the following:
@@ -106,18 +106,18 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 		returns the output geo dataframe containing all buildings, building parts, and points associated to a residential or activity land usage
 	
 	"""
-	log("OSM data requested for city: " + str(city_ref_file) )
+	log("OSM data requested for city: " + str(city_ref) )
 
 	start_time = time.time()
 
-	if (city_ref_file):
-		geo_poly_file, geo_poly_parts_file, geo_point_file = get_dataframes_filenames(city_ref_file)
+	if (city_ref):
+		geo_poly_file, geo_poly_parts_file, geo_point_file = get_dataframes_filenames(city_ref)
 
 		##########################
 		### Stored file ?
 		##########################
 		if ( os.path.isfile(geo_poly_file) ): # File exists
-			log("Found stored files for city " + city_ref_file)
+			log("Found stored files for city " + city_ref)
 			# Load local GeoDataFrames
 			return load_geodataframe(geo_poly_file), load_geodataframe(geo_poly_parts_file), load_geodataframe(geo_point_file)
 
@@ -144,7 +144,7 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	df_osm_built, polygon, north, south, east, west = create_buildings_gdf_from_input(date=date_query, polygon=polygon, place=place, which_result=which_result, point=point, address=address, distance=distance, north=north, south=south, east=east, west=west)
 	df_osm_built["osm_id"] = df_osm_built.index
 	df_osm_built.reset_index(drop=True, inplace=True)
-	df_osm_built.gdf_name = str(city_ref_file) + '_buildings' if not city_ref_file is None else 'buildings'
+	df_osm_built.gdf_name = str(city_ref) + '_buildings' if not city_ref is None else 'buildings'
 	##########################
 	### Overpass query: Land use polygons. Aid to perform buildings land use inference
 	##########################
@@ -154,14 +154,14 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	columns_of_interest = ["osm_id", "geometry", "landuse"]
 	df_osm_lu.drop( [ col for col in list( df_osm_lu.columns ) if not col in columns_of_interest ], axis=1, inplace=True )
 	df_osm_lu.reset_index(drop=True, inplace=True)
-	df_osm_lu.gdf_name = str(city_ref_file) + '_landuse' if not city_ref_file is None else 'landuse'
+	df_osm_lu.gdf_name = str(city_ref) + '_landuse' if not city_ref is None else 'landuse'
 	##########################
 	### Overpass query: POIs
 	##########################
 	df_osm_pois = create_pois_gdf(date=date_query, polygon=polygon, north=north, south=south, east=east, west=west)
 	df_osm_pois["osm_id"] = df_osm_pois.index
 	df_osm_pois.reset_index(drop=True, inplace=True)
-	df_osm_pois.gdf_name = str(city_ref_file) + '_points' if not city_ref_file is None else 'points'
+	df_osm_pois.gdf_name = str(city_ref) + '_points' if not city_ref is None else 'points'
 	##########
 	### Overpass query: Building parts. Allow to calculate the real amount of M^2 for each building
 	##########
@@ -173,7 +173,7 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 		df_osm_building_parts = df_osm_building_parts[ (~ df_osm_building_parts["building:part"].isin(building_parts_to_filter) ) & (~ df_osm_building_parts["building:part"].isnull() ) ]
 	df_osm_building_parts["osm_id"] = df_osm_building_parts.index
 	df_osm_building_parts.reset_index(drop=True, inplace=True)
-	df_osm_building_parts.gdf_name = str(city_ref_file) + '_building_parts' if not city_ref_file is None else 'building_parts'
+	df_osm_building_parts.gdf_name = str(city_ref) + '_building_parts' if not city_ref is None else 'building_parts'
 	
 	log("Done: OSM data requests. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 
@@ -303,18 +303,18 @@ def get_processed_osm_data(city_ref_file=None, region_args={"polygon":None, "pla
 	if (kwargs["retrieve_graph"]): # Save graph for input city shape
 		start_time = time.time()
 
-		get_route_graph(city_ref_file, date=date_query, polygon=polygon, north=north, south=south, east=east, west=west, force_crs=df_osm_built.crs)
+		get_route_graph(city_ref, date=date_query, polygon=polygon, north=north, south=south, east=east, west=west, force_crs=df_osm_built.crs)
 
 		log('Done: Street network graph retrieval. Elapsed time (H:M:S): ' + time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time)) )
 
 	##########################
 	### Store file ?
 	##########################
-	if ( city_ref_file ): # File exists
+	if ( city_ref ): # File exists
 		# Save GeoDataFrames
 		store_geodataframe(df_osm_built, geo_poly_file)
 		store_geodataframe(df_osm_building_parts, geo_poly_parts_file)
 		store_geodataframe(df_osm_pois, geo_point_file)
-		log("Stored OSM data files for city: "+city_ref_file)
+		log("Stored OSM data files for city: "+city_ref)
 
 	return df_osm_built, df_osm_building_parts, df_osm_pois

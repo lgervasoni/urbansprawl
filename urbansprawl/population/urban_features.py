@@ -10,7 +10,7 @@ import osmnx as ox
 import os.path
 import time
 
-from osmnx.utils import log
+from osmnx import log
 
 from .utils import get_aggregated_squares, get_population_df_filled_empty_squares
 # Filenames

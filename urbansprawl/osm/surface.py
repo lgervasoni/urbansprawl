@@ -9,7 +9,7 @@ import geopandas as gpd
 import numpy as np
 from shapely.geometry import Polygon
 
-from osmnx.utils import log
+from osmnx import log
 
 from .tags import height_tags, activity_classification
 from .classification import aggregate_classification

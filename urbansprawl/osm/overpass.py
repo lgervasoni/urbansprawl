@@ -9,10 +9,7 @@ from shapely.geometry import Point
 from shapely.geometry import Polygon
 from shapely.geometry import MultiPolygon
 
-from osmnx.core import consolidate_subdivide_geometry, get_polygons_coordinates, overpass_request, get_osm_filter
-from osmnx.plot import save_and_show
-from osmnx.projection import project_geometry
-from osmnx.utils import log, geocode
+from osmnx import log
 import logging as lg
 import osmnx as ox
 
@@ -157,12 +154,12 @@ def osm_bldg_download(date="", polygon=None, north=None, south=None, east=None, 
 	if by_bbox:
 		# turn bbox into a polygon and project to local UTM
 		polygon = Polygon([(west, south), (east, south), (east, north), (west, north)])
-		geometry_proj, crs_proj = project_geometry(polygon)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
 
 		# subdivide it if it exceeds the max area size (in meters), then project
 		# back to lat-long
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
 		log('Requesting building footprints data within bounding box from API in {:,} request(s)'.format(len(geometry)))
 		start_time = time.time()
 
@@ -177,7 +174,7 @@ def osm_bldg_download(date="", polygon=None, north=None, south=None, east=None, 
 							  '{west:.8f},{north:.8f},{east:.8f});(._;>;););(relation["building"]'
 							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);););out;')
 			query_str = query_template.format(north=north, south=south, east=east, west=west, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		msg = ('Got all building footprints data within bounding box from '
 			   'API in {:,} request(s) and {:,.2f} seconds')
@@ -186,10 +183,10 @@ def osm_bldg_download(date="", polygon=None, north=None, south=None, east=None, 
 	elif by_poly:
 		# project to utm, divide polygon up into sub-polygons if area exceeds a
 		# max size (in meters), project back to lat-long, then get a list of polygon(s) exterior coordinates
-		geometry_proj, crs_proj = project_geometry(polygon)
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
-		polygon_coord_strs = get_polygons_coordinates(geometry)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		polygon_coord_strs = ox.get_polygons_coordinates(geometry)
 		log('Requesting building footprints data within polygon from API in {:,} request(s)'.format(len(polygon_coord_strs)))
 		start_time = time.time()
 
@@ -200,7 +197,7 @@ def osm_bldg_download(date="", polygon=None, north=None, south=None, east=None, 
 							  '(poly:"{polygon}")["building"];(._;>;);relation'
 							  '(poly:"{polygon}")["building"];(._;>;););out;')
 			query_str = query_template.format(polygon=polygon_coord_str, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		msg = ('Got all building footprints data within polygon from API in '
 			   '{:,} request(s) and {:,.2f} seconds')
@@ -290,7 +287,7 @@ def buildings_from_point(date, point, distance, retain_invalid=False):
 	GeoDataFrame
 	"""
 
-	bbox = bbox_from_point(point=point, distance=distance)
+	bbox = ox.bbox_from_point(point=point, distance=distance)
 	north, south, east, west = bbox
 	return create_buildings_gdf(date=date, north=north, south=south, east=east, west=west, retain_invalid=retain_invalid)
 
@@ -315,7 +312,7 @@ def buildings_from_address(date, address, distance, retain_invalid=False):
 	"""
 
 	# geocode the address string to a (lat, lon) point
-	point = geocode(query=address)
+	point = ox.geocode(query=address)
 
 	# get buildings within distance of this point
 	return buildings_from_point(date, point, distance, retain_invalid=retain_invalid)
@@ -477,9 +474,9 @@ def graph_from_polygon(polygon, network_type='all_private', simplify=True,
 	if clean_periphery and simplify:
 		# create a new buffered polygon 0.5km around the desired one
 		buffer_dist = 500
-		polygon_utm, crs_utm = project_geometry(geometry=polygon)
+		polygon_utm, crs_utm = ox.project_geometry(geometry=polygon)
 		polygon_proj_buff = polygon_utm.buffer(buffer_dist)
-		polygon_buffered, _ = project_geometry(geometry=polygon_proj_buff, crs=crs_utm, to_latlong=True)
+		polygon_buffered, _ = ox.project_geometry(geometry=polygon_proj_buff, crs=crs_utm, to_latlong=True)
 
 		# get the network data from OSM,  create the buffered graph, then
 		# truncate it to the buffered polygon
@@ -581,9 +578,9 @@ def graph_from_bbox(north, south, east, west, network_type='all_private',
 		# create a new buffered bbox 0.5km around the desired one
 		buffer_dist = 500
 		polygon = Polygon([(west, north), (west, south), (east, south), (east, north)])
-		polygon_utm, crs_utm = project_geometry(geometry=polygon)
+		polygon_utm, crs_utm = ox.project_geometry(geometry=polygon)
 		polygon_proj_buff = polygon_utm.buffer(buffer_dist)
-		polygon_buff, _ = project_geometry(geometry=polygon_proj_buff, crs=crs_utm, to_latlong=True)
+		polygon_buff, _ = ox.project_geometry(geometry=polygon_proj_buff, crs=crs_utm, to_latlong=True)
 		west_buffered, south_buffered, east_buffered, north_buffered = polygon_buff.bounds
 
 		# get the network data from OSM then create the graph
@@ -680,7 +677,7 @@ def osm_net_download(polygon=None, north=None, south=None, east=None, west=None,
 
 	# create a filter to exclude certain kinds of ways based on the requested
 	# network_type
-	osm_filter = get_osm_filter(network_type)
+	osm_filter = ox.get_osm_filter(network_type)
 	response_jsons = []
 
 	# pass server memory allocation in bytes for the query to the API
@@ -699,12 +696,12 @@ def osm_net_download(polygon=None, north=None, south=None, east=None, west=None,
 	if by_bbox:
 		# turn bbox into a polygon and project to local UTM
 		polygon = Polygon([(west, south), (east, south), (east, north), (west, north)])
-		geometry_proj, crs_proj = project_geometry(polygon)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
 
 		# subdivide it if it exceeds the max area size (in meters), then project
 		# back to lat-long
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
 		log('Requesting network data within bounding box from API in {:,} request(s)'.format(len(geometry)))
 		start_time = time.time()
 
@@ -721,7 +718,7 @@ def osm_net_download(polygon=None, north=None, south=None, east=None, west=None,
 											  infrastructure=infrastructure,
 											  filters=osm_filter,
 											  timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		log('Got all network data within bounding box from API in {:,} request(s) and {:,.2f} seconds'.format(len(geometry), time.time()-start_time))
 
@@ -729,10 +726,10 @@ def osm_net_download(polygon=None, north=None, south=None, east=None, west=None,
 		# project to utm, divide polygon up into sub-polygons if area exceeds a
 		# max size (in meters), project back to lat-long, then get a list of
 		# polygon(s) exterior coordinates
-		geometry_proj, crs_proj = project_geometry(polygon)
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
-		polygon_coord_strs = get_polygons_coordinates(geometry)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		polygon_coord_strs = ox.get_polygons_coordinates(geometry)
 		log('Requesting network data within polygon from API in {:,} request(s)'.format(len(polygon_coord_strs)))
 		start_time = time.time()
 
@@ -741,7 +738,7 @@ def osm_net_download(polygon=None, north=None, south=None, east=None, west=None,
 		for polygon_coord_str in polygon_coord_strs:
 			query_template = date+'[out:json][timeout:{timeout}]{maxsize};({infrastructure}{filters}(poly:"{polygon}");>;);out;'
 			query_str = query_template.format(polygon=polygon_coord_str, infrastructure=infrastructure, filters=osm_filter, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		log('Got all network data within polygon from API in {:,} request(s) and {:,.2f} seconds'.format(len(polygon_coord_strs), time.time()-start_time))
 
@@ -807,12 +804,12 @@ def osm_landuse_download(date="", polygon=None, north=None, south=None, east=Non
 	if by_bbox:
 		# turn bbox into a polygon and project to local UTM
 		polygon = Polygon([(west, south), (east, south), (east, north), (west, north)])
-		geometry_proj, crs_proj = project_geometry(polygon)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
 
 		# subdivide it if it exceeds the max area size (in meters), then project
 		# back to lat-long
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
 		log('Requesting landuse footprints data within bounding box from API in {:,} request(s)'.format(len(geometry)))
 		start_time = time.time()
 
@@ -827,7 +824,7 @@ def osm_landuse_download(date="", polygon=None, north=None, south=None, east=Non
 							  '{west:.8f},{north:.8f},{east:.8f});(._;>;););(relation["landuse"]'
 							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);););out;')
 			query_str = query_template.format(north=north, south=south, east=east, west=west, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		msg = ('Got all landuse footprints data within bounding box from '
 			   'API in {:,} request(s) and {:,.2f} seconds')
@@ -836,10 +833,10 @@ def osm_landuse_download(date="", polygon=None, north=None, south=None, east=Non
 	elif by_poly:
 		# project to utm, divide polygon up into sub-polygons if area exceeds a
 		# max size (in meters), project back to lat-long, then get a list of polygon(s) exterior coordinates
-		geometry_proj, crs_proj = project_geometry(polygon)
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
-		polygon_coord_strs = get_polygons_coordinates(geometry)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		polygon_coord_strs = ox.get_polygons_coordinates(geometry)
 		log('Requesting landuse footprints data within polygon from API in {:,} request(s)'.format(len(polygon_coord_strs)))
 		start_time = time.time()
 
@@ -850,7 +847,7 @@ def osm_landuse_download(date="", polygon=None, north=None, south=None, east=Non
 							  '(poly:"{polygon}")["landuse"];(._;>;);relation'
 							  '(poly:"{polygon}")["landuse"];(._;>;););out;')
 			query_str = query_template.format(polygon=polygon_coord_str, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		msg = ('Got all landuse footprints data within polygon from API in '
 			   '{:,} request(s) and {:,.2f} seconds')
@@ -979,12 +976,12 @@ def osm_pois_download(date="", polygon=None, north=None, south=None, east=None, 
 	if by_bbox:
 		# turn bbox into a polygon and project to local UTM
 		polygon = Polygon([(west, south), (east, south), (east, north), (west, north)])
-		geometry_proj, crs_proj = project_geometry(polygon)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
 
 		# subdivide it if it exceeds the max area size (in meters), then project
 		# back to lat-long
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
 		log('Requesting POIs footprints data within bounding box from API in {:,} request(s)'.format(len(geometry)))
 		start_time = time.time()
 
@@ -1003,7 +1000,7 @@ def osm_pois_download(date="", polygon=None, north=None, south=None, east=None, 
 				'{west:.8f},{north:.8f},{east:.8f}););(node["building"]({south:.8f},'
 				'{west:.8f},{north:.8f},{east:.8f});););out;')
 			query_str = query_template.format(north=north, south=south, east=east, west=west, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		msg = ('Got all POIs footprints data within bounding box from '
 			   'API in {:,} request(s) and {:,.2f} seconds')
@@ -1012,10 +1009,10 @@ def osm_pois_download(date="", polygon=None, north=None, south=None, east=None, 
 	elif by_poly:
 		# project to utm, divide polygon up into sub-polygons if area exceeds a
 		# max size (in meters), project back to lat-long, then get a list of polygon(s) exterior coordinates
-		geometry_proj, crs_proj = project_geometry(polygon)
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
-		polygon_coord_strs = get_polygons_coordinates(geometry)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		polygon_coord_strs = ox.get_polygons_coordinates(geometry)
 		log('Requesting POIs footprints data within polygon from API in {:,} request(s)'.format(len(polygon_coord_strs)))
 		start_time = time.time()
 
@@ -1030,7 +1027,7 @@ def osm_pois_download(date="", polygon=None, north=None, south=None, east=None, 
 				'(node["sport"](poly:"{polygon}"););'
 				'(node["building"](poly:"{polygon}");););out;')
 			query_str = query_template.format(polygon=polygon_coord_str, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		msg = ('Got all POIs footprints data within polygon from API in '
 			   '{:,} request(s) and {:,.2f} seconds')
@@ -1158,12 +1155,12 @@ def osm_bldg_part_download(date="", polygon=None, north=None, south=None, east=N
 	if by_bbox:
 		# turn bbox into a polygon and project to local UTM
 		polygon = Polygon([(west, south), (east, south), (east, north), (west, north)])
-		geometry_proj, crs_proj = project_geometry(polygon)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
 
 		# subdivide it if it exceeds the max area size (in meters), then project
 		# back to lat-long
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
 		log('Requesting building part footprints data within bounding box from API in {:,} request(s)'.format(len(geometry)))
 		start_time = time.time()
 
@@ -1178,7 +1175,7 @@ def osm_bldg_part_download(date="", polygon=None, north=None, south=None, east=N
 							  '{west:.8f},{north:.8f},{east:.8f});(._;>;););(relation["building:part"]'
 							  '({south:.8f},{west:.8f},{north:.8f},{east:.8f});(._;>;);););out;')
 			query_str = query_template.format(north=north, south=south, east=east, west=west, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		msg = ('Got all building part footprints data within bounding box from '
 			   'API in {:,} request(s) and {:,.2f} seconds')
@@ -1187,10 +1184,10 @@ def osm_bldg_part_download(date="", polygon=None, north=None, south=None, east=N
 	elif by_poly:
 		# project to utm, divide polygon up into sub-polygons if area exceeds a
 		# max size (in meters), project back to lat-long, then get a list of polygon(s) exterior coordinates
-		geometry_proj, crs_proj = project_geometry(polygon)
-		geometry_proj_consolidated_subdivided = consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
-		geometry, _ = project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
-		polygon_coord_strs = get_polygons_coordinates(geometry)
+		geometry_proj, crs_proj = ox.project_geometry(polygon)
+		geometry_proj_consolidated_subdivided = ox.consolidate_subdivide_geometry(geometry_proj, max_query_area_size=max_query_area_size)
+		geometry, _ = ox.project_geometry(geometry_proj_consolidated_subdivided, crs=crs_proj, to_latlong=True)
+		polygon_coord_strs = ox.get_polygons_coordinates(geometry)
 		log('Requesting building part footprints data within polygon from API in {:,} request(s)'.format(len(polygon_coord_strs)))
 		start_time = time.time()
 
@@ -1201,7 +1198,7 @@ def osm_bldg_part_download(date="", polygon=None, north=None, south=None, east=N
 							  '(poly:"{polygon}")["building:part"];(._;>;);relation'
 							  '(poly:"{polygon}")["building:part"];(._;>;););out;')
 			query_str = query_template.format(polygon=polygon_coord_str, timeout=timeout, maxsize=maxsize)
-			response_json = overpass_request(data={'data':query_str}, timeout=timeout)
+			response_json = ox.overpass_request(data={'data':query_str}, timeout=timeout)
 			response_jsons.append(response_json)
 		msg = ('Got all building part footprints data within polygon from API in '
 			   '{:,} request(s) and {:,.2f} seconds')

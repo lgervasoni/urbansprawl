@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import time
 
-from osmnx.utils import log
+from osmnx import log
 
 ##############################################################
 ### Dispersion indices methods

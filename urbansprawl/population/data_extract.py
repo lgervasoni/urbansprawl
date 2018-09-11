@@ -10,7 +10,7 @@ import os
 import numpy as np
 import osmnx as ox
 
-from osmnx.utils import log
+from osmnx import log
 
 from .utils import get_population_extract_filename
 

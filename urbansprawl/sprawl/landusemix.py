@@ -11,7 +11,7 @@ import time
 from sklearn.neighbors.kde import KernelDensity
 from .utils import WeightedKernelDensityEstimation
 
-from osmnx.utils import log
+from osmnx import log
 
 ##############################################################
 ### Land use mix indices methods

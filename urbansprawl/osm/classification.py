@@ -9,7 +9,7 @@ import geopandas as gpd
 import numpy as np
 from scipy import spatial
 
-from osmnx.utils import log
+from osmnx import log
 
 from .tags import key_classification, landuse_classification, activity_classification
 

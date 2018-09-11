@@ -6,7 +6,7 @@
 import pandas as pd
 import geopandas as gpd
 import numpy as np
-from osmnx.utils import log
+from osmnx import log
 from shapely.geometry import Point
 
 from ..osm.core import get_route_graph, get_processed_osm_data

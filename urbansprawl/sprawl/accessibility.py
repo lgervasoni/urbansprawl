@@ -15,7 +15,7 @@ import shutil
 
 from multiprocessing import cpu_count
 
-from osmnx.utils import log
+from osmnx import log
 from .utils import divide_long_edges_graph
 
 ##############################################################
