@@ -11,7 +11,7 @@ import time
 from sklearn.neighbors.kde import KernelDensity
 from .utils import WeightedKernelDensityEstimation
 
-from osmnx.utils import log
+from osmnx import log
 
 ##############################################################
 ### Land use mix indices methods
@@ -56,12 +56,12 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 
 	Parameters
 	----------
-	XX_YY : pandas.Panel
-		meshgrid with (x,y) reference points to calculate indices
-	kde_activities : pandas.DataFrame
-		Activity land use densities
-	kde_residential : pandas.DataFrame
-		Residential land use densities
+	df_indices : geopandas.GeoDataFrame
+		data frame containing the (x,y) reference points to calculate indices
+	df_osm_built : geopandas.GeoDataFrame
+		data frame containing the building's geometries
+	df_osm_pois : geopandas.GeoDataFrame
+		data frame containing the points' of interest geometries
 	kw_args: dict
 		additional keyword arguments for the indices calculation
 			walkable_distance : int
@@ -80,7 +80,7 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 	pandas.DataFrame
 		land use mix indices
 	"""
-	log("Land use mix calculation")
+	log("Calculating land use mix indices")
 	start = time.time()
 
 	# Get the bandwidth, related to 'walkable distances'
@@ -145,23 +145,32 @@ def compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, kw_args={'wal
 	df_indices[index_column] = df_indices.apply(lambda x: _land_use_mix(x.activity_pdf, x.residential_pdf), axis=1 )
 	df_indices["landuse_intensity"] = df_indices.apply(lambda x: (x.activity_pdf + x.residential_pdf)/2., axis=1 )
 	
-	end = time.time()
-	log("Land use mix calculation time: "+str(end-start))
+	log("Done: Land use mix indices. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start)) )
 	
 ####
 
 def calculate_kde(points, df_osm_built, df_osm_pois=None, bandwidth=400, X_weights=None, pois_weight=9, log_weight=True):
 	"""
 	Evaluate the probability density function using Kernel Density Estimation of input geo-localized data
-	KDE's bandwidth related to walkable-distances
+	KDE's bandwidth stands for walkable distances
+	If input weights are given, a Weighted Kernel Density Estimation is carried out
 
 	Parameters
 	----------
-	df : pandas.DataFrame
-		input data with column [geometry] containing shapely geometries
-	XX_YY : pandas.Panel
-		meshgrid to evaluate the probability density function
-	bandwidth:
+	points : geopandas.GeoSeries
+		reference points to calculate indices
+	df_osm_built : geopandas.GeoDataFrame
+		data frame containing the building's geometries
+	df_osm_pois : geopandas.GeoDataFrame
+		data frame containing the points' of interest geometries
+	bandwidth: int
+		bandwidth value to be employed on the Kernel Density Estimation
+	X_weights : pandas.Series
+		indicates the weight for each input building (e.g. surface)
+	pois_weight : int
+		weight assigned to points of interest
+	log_weight : bool
+		if indicated, applies a log transformation to input weight values
 
 	Returns
 	----------

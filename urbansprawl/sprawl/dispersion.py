@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import time
 
-from osmnx.utils import log
+from osmnx import log
 
 ##############################################################
 ### Dispersion indices methods
@@ -23,7 +23,7 @@ def closest_building_distance_median( point_ref, tree, df_closest_d, radius_sear
 	Parameters
 	----------
 	point_ref : shapely.Point
-		calculate indice at input point
+		calculate index at input point
 	tree : scipy.spatial.KDTree
 		KDTree of buildings centroid
 	df : pandas.DataFrame 
@@ -52,7 +52,7 @@ def closest_building_distance_average( point_ref, tree, df_closest_d, radius_sea
 	Parameters
 	----------
 	point_ref : shapely.Point
-		calculate indice at input point
+		calculate index at input point
 	tree : scipy.spatial.KDTree
 		KDTree of buildings centroid
 	df : pandas.DataFrame 
@@ -101,7 +101,7 @@ def compute_grid_dispersion(df_indices, df_osm_built, kwargs={"radius_search":75
 	geopandas.GeoDataFrame
 		data frame with the added column for dispersion indices
 	"""
-	log("Dispersion calculation")
+	log("Calculating dispersion indices")
 	start = time.time()
 
 	# Get radius search: circle radius to consider the dispersion calculation at a local point
@@ -130,8 +130,7 @@ def compute_grid_dispersion(df_indices, df_osm_built, kwargs={"radius_search":75
 	# Remove added column
 	df_osm_built.drop('closest_d', axis=1, inplace=True)
 
-	end = time.time()
-	log("Dispersion calculation time: "+str(end-start))
+	log("Done: Dispersion indices. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start)) )
 	
 
 def _apply_polygon_closest_distance_neighbor(df_osm_built, K_nearest = 50):

@@ -23,12 +23,12 @@ install_requires = [
     'keras',
     'networkx',
     'osmnx',
-    'notebook'
+    'jupyter'
 ]
 
 setup(
     name='urbansprawl',
-    keywords=['urbansprawl', 'gis', 'machine learning', 'openstreetmap'],
+    keywords=['urbansprawl', 'land use mix', 'gis', 'spatial analysis', 'machine learning', 'openstreetmap', 'population density', 'population downscaling', 'neural networks'],
     version=version,
     description='The urbansprawl project provides an open source framework for assessing urban sprawl using open data',
     long_description=readme,
@@ -43,6 +43,11 @@ setup(
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering :: GIS',
+        'Topic :: Scientific/Engineering :: Visualization',
+        'Topic :: Scientific/Engineering :: Physics',
+        'Topic :: Scientific/Engineering :: Mathematics',
+        'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Operating System :: OS Independent',
         'License :: OSI Approved :: MIT License',

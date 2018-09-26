@@ -4,11 +4,11 @@
 ###################################################################################################
 
 import geopandas as gpd
-
+import osmnx as ox
 
 def proportional_population_downscaling(df_osm_built, df_insee):
 	"""
-	Performs a proportional population downscaling considerig the surface dedicated to residential land use
+	Performs a proportional population downscaling considering the surface dedicated to residential land use
 	Associates the estimated population to each building in column 'population'
 
 	Parameters
@@ -22,14 +22,16 @@ def proportional_population_downscaling(df_osm_built, df_insee):
 	----------
 
 	"""
+	if (df_insee.crs != df_osm_built.crs): # If projections do not match
+		# First project to Lat-Long coordinates, then project to UTM coordinates
+		df_insee = ox.project_gdf( ox.project_gdf(df_insee, to_latlong=True) )
+
+		# OSM Building geometries are already projected
+		assert(df_insee.crs == df_osm_built.crs)
+
 	df_osm_built['geom'] = df_osm_built.geometry
 	df_osm_built_residential = df_osm_built[ df_osm_built.apply(lambda x: x.landuses_m2['residential'] > 0, axis = 1) ]
-	
-	# Same projection ?
-	assert( df_insee.crs.get('datum') == df_osm_built_residential.crs.get('datum') )
-	assert( df_insee.crs.get('proj') == df_osm_built_residential.crs.get('proj') )
-	assert( df_insee.crs.get('zone') == df_osm_built_residential.crs.get('zone') )
-	assert( df_insee.crs.get('units') == df_osm_built_residential.crs.get('units') )
+
 	# Loading/saving using geopandas loses the 'ellps' key
 	df_insee.crs = df_osm_built_residential.crs
 

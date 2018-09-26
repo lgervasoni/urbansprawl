@@ -86,7 +86,7 @@ def get_count_activities_fixed_distance(G, point_ref, arguments):
 		# Store visited node
 		visited_nodes.add(N_visit)
 
-		# Update travelled activities
+		# Update traveled activities
 		num_activities_travelled += G.node[N_visit]["num_activities"]
 
 		# Reached sufficient number of activities
@@ -127,7 +127,7 @@ def get_minimum_cost_activities_travel(G, point_ref, arguments):
 	G : networkx multidigraph
 		input graph to calculate accessibility
 	point_ref: shapely.Point
-		reference point to calculate accesisibility
+		reference point to calculate accessibility
 
 	Returns
 	----------
@@ -151,7 +151,7 @@ def get_minimum_cost_activities_travel(G, point_ref, arguments):
 		# Store visited node
 		visited_nodes.append(N_visit)
 
-		# Update travelled activities
+		# Update traveled activities
 		activities_travelled += G.node[N_visit]["num_activities"]
 
 		# Add to neighboring_nodes the neighbors of visited node

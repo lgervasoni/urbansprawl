@@ -11,11 +11,88 @@ import numpy as np
 from shapely.geometry import Polygon
 from shapely.geometry import Point
 
+from ..settings import storage_folder
+
+# Format for load/save the geo-data ['geojson','shp']
+geo_format = 'geojson' # 'shp'
+
+
+def get_population_extract_filename(city_ref_file, data_source):
+	"""
+	Get data population extract filename for input city
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+	data_source : string
+		desired population data source
+
+	Returns
+	----------
+	string
+		returns the population extract filename
+	
+	"""
+	# Folder exists?
+	import os
+	if not(os.path.isdir(storage_folder + "/" + data_source)): 
+		os.makedirs(storage_folder + "/" + data_source)
+	return storage_folder + "/" + data_source + "/" + city_ref_file + "_population.shp"
+
+def get_population_urban_features_filename(city_ref_file, data_source):
+	"""
+	Get population urban features extract filename for input city
+	Force GeoJSON format: Shapefiles truncate column names
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+	data_source : string
+		desired population data source
+
+	Returns
+	----------
+	string
+		returns the population extract filename
+	
+	"""
+	# Folder exists?
+	import os
+	if not(os.path.isdir(storage_folder + "/" + data_source)): 
+		os.makedirs(storage_folder + "/" + data_source)
+	return storage_folder + "/" + data_source + "/" + city_ref_file + "_urban_features." + geo_format
+
+def get_population_training_validating_filename(city_ref_file, data_source="training"):
+	"""
+	Get population normalized urban features extract and population densities filename for input city
+	Stored in Numpy.Arrays
+
+	Parameters
+	----------
+	city_ref_file : string
+		name of input city
+
+	Returns
+	----------
+	string
+		returns the numpy stored/storing filename
+	
+	"""
+	# Folder exists?
+	import os
+	if not(os.path.isdir(storage_folder + "/" + data_source)): 
+		os.makedirs(storage_folder + "/" + data_source)
+	return storage_folder + "/" + data_source + "/" + city_ref_file + "_X_Y.npz"
+
+#################################################################
+
 def get_aggregated_squares(df_insee, step=1000., conserve_squares_info=False):
 	"""
 	Aggregates input population data in squares of 5x5
 	Assumption: Input squares 200m by 200m
-	INSEE data contains column 'idINSPIRE' which denotes in epsg:3035 the northing/easting coordinates of the south-west box endpoint
+	INSEE data contains column 'idINSPIRE' which denotes in EPSG:3035 the northing/easting coordinates of the south-west box endpoint
 	If conserve squares information is True, the information relative to each original square is kept
 	Output: Aggregated squares of 1km by 1km
 
@@ -113,15 +190,15 @@ def get_aggregated_squares(df_insee, step=1000., conserve_squares_info=False):
 	df_squares.drop(df_squares[ df_squares.geometry.area == 0 ].index, axis=0, inplace=True)
 	# Reset index
 	df_squares.reset_index(drop=True, inplace=True)
-
-	# Set final CRS
+	# Set CRS key-words
 	df_squares.crs = df_insee.crs
+
 	return df_squares
 
 
 def population_downscaling_validation(df_osm_built, df_insee):
 	"""
-	Validates the poplation downscaling estimation by means of aggregating the sum of buildings estimated population lying within each population square
+	Validates the population downscaling estimation by means of aggregating the sum of buildings estimated population lying within each population square
 	Allows to compare the real population count with the estimated population lying within each square
 	Updates new column 'pop_estimation' for each square in the population data frame
 
@@ -207,7 +284,12 @@ def get_population_df_filled_empty_squares(df_insee):
 			empty_population_box.append( Polygon([ (E - 100., N - 100.), (E - 100., N + 100. ), (E + 100., N + 100. ), (E + 100., N - 100. ), (E - 100., N - 100. ) ]) )
 
 	# Concatenate original data frame + Empty squares
-	gdf_concat = pd.concat( [df_insee_3035, gpd.GeoDataFrame( {'geometry':empty_population_box, 'pop_count':[0]*len(empty_population_box) }, crs="+init=epsg:3035" ) ], ignore_index=True )
+	gdf_concat = pd.concat( [df_insee_3035, gpd.GeoDataFrame( {'geometry':empty_population_box, 'pop_count':[0]*len(empty_population_box) }, crs="+init=epsg:3035" ) ], ignore_index=True, sort=False )
+
+	# Remove added grid-cells outside the convex hull of the population data frame
+	df_insee_convex_hull_3035 = df_insee_3035.unary_union.convex_hull
+	gdf_concat = gdf_concat[ gdf_concat.apply(lambda x: df_insee_convex_hull_3035.intersects(x.geometry), axis=1 ) ]
+	gdf_concat.reset_index(drop=True, inplace=True)	
 
 	# Project (First project to latitude-longitude due to GeoPandas issue)
 	return ox.project_gdf( ox.project_gdf(gdf_concat, to_latlong=True) )
