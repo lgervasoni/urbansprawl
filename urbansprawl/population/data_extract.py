@@ -98,9 +98,9 @@ def get_population_df(pop_shapefile, pop_data_file, data_source, to_crs, poly_gd
 
 	return ox.project_gdf(df_pop, to_crs=to_crs)
 
-def get_extract_population_data(city_ref, data_source, pop_shapefile=None, pop_data_file=None, to_crs={'init': 'epsg:4326'}, df_osm_built=None):
+def get_extract_population_data(city_ref, data_source, pop_shapefile=None, pop_data_file=None, to_crs={'init': 'epsg:4326'}, polygons_gdf=None):
 	"""
-	Get data population extract of desired data source for input city
+	Get data population extract of desired data source for input city, calculating the convex hull of input buildings geodataframe
 	The population data frame is projected to the desired coordinate reference system
 	Stores the extracted shapefile
 	Returns the stored population data for input 'data source' and 'city reference' if it was previously stored
@@ -112,13 +112,13 @@ def get_extract_population_data(city_ref, data_source, pop_shapefile=None, pop_d
 	data_source : string
 		desired population data source
 	pop_shapefile : string
-		population count shapefile
+		path of population count shapefile
 	pop_data_file : string
-		population data additional file (required for INSEE format)
+		path of population data additional file (required for INSEE format)
 	to_crs : dict
 		desired coordinate reference system
-	df_osm_built : geopandas.GeoDataFrame
-		buildings for input region of interest
+	polygons_gdf : geopandas.GeoDataFrame
+		polygons (e.g. buildings) for input region of interest which will determine the shape to extract
 
 	Returns
 	----------
@@ -134,16 +134,16 @@ def get_extract_population_data(city_ref, data_source, pop_shapefile=None, pop_d
 		return gpd.read_file( get_population_extract_filename(city_ref, data_source) )
 
 	# Input shape given?
-	assert( not ( np.all(df_osm_built is None ) ) )
+	assert( not ( np.all(polygons_gdf is None ) ) )
 	# Input population shapefile given?
 	assert( not pop_shapefile is None )
 	# All input files given?
 	assert( not ( (data_source == 'insee') and (pop_data_file is None) ) )
 
 	# Get buildings convex hull
-	polygon = GeometryCollection( df_osm_built.geometry.values.tolist() ).convex_hull
+	polygon = GeometryCollection( polygons_gdf.geometry.values.tolist() ).convex_hull
 	# Convert to geo-dataframe with defined CRS
-	poly_gdf = gpd.GeoDataFrame([polygon], columns=["geometry"], crs=df_osm_built.crs)
+	poly_gdf = gpd.GeoDataFrame([polygon], columns=["geometry"], crs=polygons_gdf.crs)
 	
 	# Compute extract
 	df_pop = get_population_df(pop_shapefile, pop_data_file, data_source, to_crs, poly_gdf)

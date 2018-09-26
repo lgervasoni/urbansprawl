@@ -278,7 +278,7 @@ def get_Y_X_features_population_data(cities_selection=None, cities_skip=None):
 		
 		# Only retrieve data from cities_selection (if ever given)
 		if ( (cities_selection is not None) and (city_ref not in cities_selection) ): 
-			log('Skipping city:', city_ref)
+			log('Skipping city: ' + str(city_ref) )
 			continue
 			
 		# Skip cities data from from cities_skip (if ever given)
@@ -286,7 +286,7 @@ def get_Y_X_features_population_data(cities_selection=None, cities_skip=None):
 			log('Skipping city:', city_ref)
 			continue
 		
-		log('Retrieving data:', city_ref)
+		log('Retrieving data for city: ' + str(city_ref) )
 		
 		# Get stored data
 		city_Y, city_X, city_X_cols = get_training_testing_data(city_ref)

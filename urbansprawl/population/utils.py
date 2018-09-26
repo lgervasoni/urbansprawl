@@ -190,9 +190,9 @@ def get_aggregated_squares(df_insee, step=1000., conserve_squares_info=False):
 	df_squares.drop(df_squares[ df_squares.geometry.area == 0 ].index, axis=0, inplace=True)
 	# Reset index
 	df_squares.reset_index(drop=True, inplace=True)
-
-	# Set final CRS
+	# Set CRS key-words
 	df_squares.crs = df_insee.crs
+
 	return df_squares
 
 
@@ -284,7 +284,12 @@ def get_population_df_filled_empty_squares(df_insee):
 			empty_population_box.append( Polygon([ (E - 100., N - 100.), (E - 100., N + 100. ), (E + 100., N + 100. ), (E + 100., N - 100. ), (E - 100., N - 100. ) ]) )
 
 	# Concatenate original data frame + Empty squares
-	gdf_concat = pd.concat( [df_insee_3035, gpd.GeoDataFrame( {'geometry':empty_population_box, 'pop_count':[0]*len(empty_population_box) }, crs="+init=epsg:3035" ) ], ignore_index=True )
+	gdf_concat = pd.concat( [df_insee_3035, gpd.GeoDataFrame( {'geometry':empty_population_box, 'pop_count':[0]*len(empty_population_box) }, crs="+init=epsg:3035" ) ], ignore_index=True, sort=False )
+
+	# Remove added grid-cells outside the convex hull of the population data frame
+	df_insee_convex_hull_3035 = df_insee_3035.unary_union.convex_hull
+	gdf_concat = gdf_concat[ gdf_concat.apply(lambda x: df_insee_convex_hull_3035.intersects(x.geometry), axis=1 ) ]
+	gdf_concat.reset_index(drop=True, inplace=True)	
 
 	# Project (First project to latitude-longitude due to GeoPandas issue)
 	return ox.project_gdf( ox.project_gdf(gdf_concat, to_latlong=True) )
