@@ -22,67 +22,9 @@ from .data_extract import get_extract_population_data
 from ..sprawl.dispersion import compute_grid_dispersion
 from ..sprawl.landusemix import compute_grid_landusemix
 
+from shapely.geometry import Polygon
 
-def compute_urban_features(df_osm_built, df_osm_pois, x_square):
-	"""
-	Computes a set of urban features for an input square, given as data the buildings and Points of Interest
-
-	Parameters
-	----------
-	df_osm_built : geopandas.GeoDataFrame
-		input buildings
-	df_osm_pois : geopandas.GeoDataFrame
-		input points of interest
-	x_square : geopandas.GeoSeries
-		geometry square where urban features will be calculated
-
-	Returns
-	----------
-	geopandas.GeoSeries
-		geometry with updated urban features
-	"""
-	try: # Building fully-contained or partially-contained in X's square geometry
-		df_osm_built = gpd.sjoin( df_osm_built, gpd.GeoDataFrame([x_square], crs=df_osm_built.crs), op='intersects')
-	except: # Empty intersection
-		return x_square
-	# Empty
-	if ( df_osm_built.empty ): return x_square
-
-	### Apply percentage of building presence within square: 1 if fully contained, 0.5 if half the building contained, ...
-	df_osm_built['building_ratio'] = df_osm_built.apply( lambda x: x.geometry.intersection(x_square.geometry).area / x.geometry.area, axis=1)
-	
-	### Total M^2
-	x_square['m2_total_residential'] = df_osm_built.apply(lambda x: x.landuses_m2['residential'] * x.building_ratio, axis=1).sum()
-	x_square['m2_total_activity'] = df_osm_built.apply(lambda x: x.landuses_m2['activity'] * x.building_ratio, axis=1).sum()
-
-	### M^2 footprint 
-	df_osm_built_selection = df_osm_built[ df_osm_built.classification.isin(['residential']) ]
-	x_square['m2_footprint_residential'] = 0 if df_osm_built_selection.empty else df_osm_built_selection.apply(lambda x: x.geometry.area * x.building_ratio, axis=1).sum()
-	df_osm_built_selection = df_osm_built[ df_osm_built.classification.isin(['activity']) ]
-	x_square['m2_footprint_activity'] = 0 if df_osm_built_selection.empty else df_osm_built_selection.apply(lambda x: x.geometry.area * x.building_ratio, axis=1).sum()
-	df_osm_built_selection = df_osm_built[ df_osm_built.classification.isin(['mixed']) ]
-	x_square['m2_footprint_mixed'] = 0 if df_osm_built_selection.empty else df_osm_built_selection.apply(lambda x: x.geometry.area * x.building_ratio, axis=1).sum()
-
-	### Containing building types
-	count_ratio_by_classification = df_osm_built.groupby('classification').building_ratio.sum()
-	x_square['num_built_activity'] = count_ratio_by_classification.get('activity', 0)
-	x_square['num_built_residential'] = count_ratio_by_classification.get('residential',0)
-	x_square['num_built_mixed'] = count_ratio_by_classification.get('mixed',0)
-
-	### Containing POIs
-	df_osm_pois_selection = df_osm_pois[ df_osm_pois.classification.isin(["activity","mixed"]) ]
-	x_square['num_activity_pois'] = len( gpd.sjoin( df_osm_pois_selection, gpd.GeoDataFrame([x_square], crs=df_osm_pois.crs), op='intersects' ) )
-	
-	### Total number of levels
-	x_square['num_levels'] = df_osm_built.apply(lambda x: x.building_levels * x.building_ratio , axis=1).sum()
-	x_square['num_buildings'] = df_osm_built.building_ratio.sum()
-
-	### Percentage of built-up area
-	x_square['built_up_relation'] = df_osm_built.apply(lambda x: x.geometry.area * x.building_ratio, axis=1).sum() / x_square.geometry.area 
-		
-	return x_square
-
-def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, graph=None, df_insee=None, data_source=None, kwargs={"max_dispersion":15}):
+def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, df_insee=None, data_source=None, kwargs={"max_dispersion":15}):
 	"""
 	Computes a set of urban features for each square where population count data exists
 
@@ -94,9 +36,12 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, g
 		input buildings
 	df_osm_pois : geopandas.GeoDataFrame
 		input points of interest
-	graph : 
-	x_square : geopandas.GeoSeries
-		geometry square where urban features will be calculated
+	df_insee : geopandas.GeoDataFrame
+		grid-cells with population count where urban features will be calculated
+	data_source : str
+		define the type of population data for its retrieval in case it was stored
+	kwargs : dict
+		keyword arguments to guide the process
 
 	Returns
 	----------
@@ -115,23 +60,112 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, g
 	# Required arguments
 	assert( not df_osm_built is None )
 	assert( not df_osm_pois is None )
-	assert( not graph is None )
 	assert( not df_insee is None )
 
-	# Copy data frame in order to modify it
-	#df_insee_urban_features = df_insee.copy()
-	# Data frame + creation of empty squares with 0 count population
+	# Get population count data with filled empty squares (null population)
 	df_insee_urban_features = get_population_df_filled_empty_squares(df_insee)
+	# Set crs
+	crs_proj = df_insee.crs
+	df_insee_urban_features.crs = crs_proj
+
+	##################
+	### Urban features
+	##################
+	# Compute the urban features for each square
+	log("Calculating urban features")
+	start = time.time()
+
+	# Conserve building geometries
+	df_osm_built['geom_building'] = df_osm_built['geometry']
+
+	# Spatial join: grid-cell i - building j for all intersections
+	df_insee_urban_features = gpd.sjoin( df_insee_urban_features, df_osm_built, op='intersects', how='left')
+
+	# When a grid-cell i does not intersect any building: NaN values
+	null_idx = df_insee_urban_features.loc[ df_insee_urban_features['geom_building'].isnull() ].index
+	# Replace NaN for urban features calculation
+	min_polygon = Polygon([(0,0), (0,np.finfo(float).eps), (np.finfo(float).eps,np.finfo(float).eps)])
+	df_insee_urban_features.loc[null_idx, 'geom_building'] = df_insee_urban_features.loc[null_idx, 'geom_building'].apply(lambda x: min_polygon)
+	df_insee_urban_features.loc[null_idx, 'landuses_m2' ] = len( null_idx ) * [{'residential':0, 'activity':0}]
+	df_insee_urban_features.loc[null_idx, 'building_levels'] = len(null_idx) * [0]
+
+	### Pre-calculation of urban features
+	
+	# Apply percentage of building presence within square: 1 if fully contained, 0.5 if half the building contained, ...
+	df_insee_urban_features['building_ratio'] = df_insee_urban_features.apply( lambda x: x.geom_building.intersection(x.geometry).area / x.geom_building.area, axis=1 )
+
+	df_insee_urban_features['m2_total_residential'] = df_insee_urban_features.apply( lambda x: x.building_ratio * x.landuses_m2['residential'], axis=1 )
+	df_insee_urban_features['m2_total_activity'] = df_insee_urban_features.apply( lambda x: x.building_ratio * x.landuses_m2['activity'], axis=1 )
+
+	df_insee_urban_features['m2_footprint_residential'] = 0
+	df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['residential']), 'm2_footprint_residential' ] = df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['residential']) ].apply(lambda x: x.building_ratio * x.geom_building.area, axis=1 )
+	df_insee_urban_features['m2_footprint_activity'] = 0
+	df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['activity']), 'm2_footprint_activity' ] = df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['activity']) ].apply(lambda x: x.building_ratio * x.geom_building.area, axis=1 )
+	df_insee_urban_features['m2_footprint_mixed'] = 0
+	df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['mixed']), 'm2_footprint_mixed' ] = df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['mixed']) ].apply(lambda x: x.building_ratio * x.geom_building.area, axis=1 )
+
+	df_insee_urban_features['num_built_activity'] = 0
+	df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['activity']), 'num_built_activity' ] = df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['activity']) ].building_ratio
+	df_insee_urban_features['num_built_residential'] = 0
+	df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['residential']), 'num_built_residential' ] = df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['residential']) ].building_ratio
+	df_insee_urban_features['num_built_mixed'] = 0
+	df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['mixed']), 'num_built_mixed' ] = df_insee_urban_features.loc[ df_insee_urban_features.classification.isin(['mixed']) ].building_ratio
+
+	df_insee_urban_features['num_levels'] = df_insee_urban_features.apply( lambda x: x.building_ratio * x.building_levels, axis=1 )
+	df_insee_urban_features['num_buildings'] = df_insee_urban_features['building_ratio']
+
+	df_insee_urban_features['built_up_m2'] = df_insee_urban_features.apply( lambda x: x.geom_building.area * x.building_ratio , axis=1 )
+
+
+	### Urban features aggregation functions
+	urban_features_aggregation = {}
+	urban_features_aggregation['idINSPIRE'] = lambda x: x.head(1)
+	urban_features_aggregation['pop_count'] = lambda x: x.head(1)
+	urban_features_aggregation['geometry'] = lambda x: x.head(1)
+
+	urban_features_aggregation['m2_total_residential'] = 'sum'
+	urban_features_aggregation['m2_total_activity'] = 'sum'
+
+	urban_features_aggregation['m2_footprint_residential'] = 'sum'
+	urban_features_aggregation['m2_footprint_activity'] = 'sum'
+	urban_features_aggregation['m2_footprint_mixed'] = 'sum'
+
+	urban_features_aggregation['num_built_activity'] = 'sum'
+	urban_features_aggregation['num_built_residential'] = 'sum'
+	urban_features_aggregation['num_built_mixed'] = 'sum'
+
+	urban_features_aggregation['num_levels'] = 'sum'
+	urban_features_aggregation['num_buildings'] = 'sum'
+
+	urban_features_aggregation['built_up_m2'] = 'sum'
+
+	# Apply aggregate functions
+	df_insee_urban_features = df_insee_urban_features.groupby( df_insee_urban_features.index ).agg( urban_features_aggregation )
+
+	# Calculate built up relation (relative to the area of the grid-cell geometry)
+	df_insee_urban_features['built_up_relation'] = df_insee_urban_features.apply(lambda x: x.built_up_m2 / x.geometry.area, axis=1)
+	
+	# To geopandas.GeoDataFrame and set crs
+	df_insee_urban_features = gpd.GeoDataFrame(df_insee_urban_features)
+	df_insee_urban_features.crs = crs_proj
+	
+	# POIs
+	df_osm_pois_selection = df_osm_pois[ df_osm_pois.classification.isin(["activity","mixed"]) ]
+	gpd_intersection_pois = gpd.sjoin( df_insee_urban_features, df_osm_pois_selection, op='intersects', how='left')
+	# Number of activity/mixed POIs
+	df_insee_urban_features['num_activity_pois'] = gpd_intersection_pois.groupby( gpd_intersection_pois.index ).agg({'osm_id':'count'})
+
+
 	##################
 	### Sprawling indices
 	##################
 	df_insee_urban_features['geometry_squares'] = df_insee_urban_features.geometry
 	df_insee_urban_features['geometry'] = df_insee_urban_features.geometry.centroid
-	
+
 	'''
 	compute_grid_accessibility(df_insee_urban_features, graph, df_osm_built, df_osm_pois)
 	'''
-	
+
 	# Compute land uses mix + densities estimation
 	compute_grid_landusemix(df_insee_urban_features, df_osm_built, df_osm_pois)
 	# Dispersion indices
@@ -139,31 +173,21 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, g
 
 	if (kwargs.get("max_dispersion")): # Set max bounds for dispersion values
 		df_insee_urban_features.loc[ df_insee_urban_features.dispersion > kwargs.get("max_dispersion"), "dispersion" ] = kwargs.get("max_dispersion")
-	
+
 	# Set back original geometries
 	df_insee_urban_features['geometry'] = df_insee_urban_features.geometry_squares
 	df_insee_urban_features.drop('geometry_squares', axis=1, inplace=True)
 	
-	##################
-	### Additional urban features
-	##################	
-	# Compute the urban features for each square
-	log("Calculating urban features")
-	start = time.time()
-
-	df_insee_urban_features = df_insee_urban_features.apply(lambda x: compute_urban_features(df_osm_built, df_osm_pois, x), axis=1)
-	# FillNA, set CRS
+	# Fill NaN sprawl indices with 0
 	df_insee_urban_features.fillna(0, inplace=True)
-	df_insee_urban_features.crs = df_insee.crs
 
 	# Save to GeoJSON file (no projection conserved, then use EPSG 4326)
 	ox.project_gdf(df_insee_urban_features, to_latlong=True).to_file( get_population_urban_features_filename(city_ref, data_source), driver='GeoJSON' )
 
 	elapsed_time = time.time() - start
 	log("Done: Urban features calculation. Elapsed time (H:M:S): " + '{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60) )
-	
-	return df_insee_urban_features
 
+	return df_insee_urban_features
 
 def get_training_testing_data(city_ref, df_insee_urban_features=None):
 	"""
@@ -176,10 +200,10 @@ def get_training_testing_data(city_ref, df_insee_urban_features=None):
 
 	Parameters
 	----------
-	cities_selection : string
-		list of cities to select
-	cities_skip : string
-		list of cities to skip (retrieve the rest)
+	city_ref : string
+		city reference name
+	df_insee_urban_features : geopandas.GeoDataFrame
+		grid-cells with population count data and calculated urban features
 
 	Returns
 	----------
