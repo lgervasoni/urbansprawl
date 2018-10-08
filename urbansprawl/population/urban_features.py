@@ -159,7 +159,8 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, g
 	# Save to GeoJSON file (no projection conserved, then use EPSG 4326)
 	ox.project_gdf(df_insee_urban_features, to_latlong=True).to_file( get_population_urban_features_filename(city_ref, data_source), driver='GeoJSON' )
 
-	log("Done: Urban features calculation. Elapsed time (H:M:S): " + time.strftime("%H:%M:%S", time.gmtime(time.time()-start)) )
+	elapsed_time = time.time() - start
+	log("Done: Urban features calculation. Elapsed time (H:M:S): " + '{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60) )
 	
 	return df_insee_urban_features
 
