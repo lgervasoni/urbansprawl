@@ -45,7 +45,7 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, d
 
 	Returns
 	----------
-	geopandas.GeoSeries
+	geopandas.GeoDataFrame
 		geometry with updated urban features
 	"""
 
