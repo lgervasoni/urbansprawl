@@ -144,6 +144,7 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, d
 
 	# Calculate built up relation (relative to the area of the grid-cell geometry)
 	df_insee_urban_features['built_up_relation'] = df_insee_urban_features.apply(lambda x: x.built_up_m2 / x.geometry.area, axis=1)
+	df_insee_urban_features.drop('built_up_m2', axis=1, inplace=True)
 	
 	# To geopandas.GeoDataFrame and set crs
 	df_insee_urban_features = gpd.GeoDataFrame(df_insee_urban_features)
@@ -184,7 +185,7 @@ def compute_full_urban_features(city_ref, df_osm_built=None, df_osm_pois=None, d
 	# Save to GeoJSON file (no projection conserved, then use EPSG 4326)
 	ox.project_gdf(df_insee_urban_features, to_latlong=True).to_file( get_population_urban_features_filename(city_ref, data_source), driver='GeoJSON' )
 
-	elapsed_time = time.time() - start
+	elapsed_time = int(time.time() - start)
 	log("Done: Urban features calculation. Elapsed time (H:M:S): " + '{:02d}:{:02d}:{:02d}'.format(elapsed_time // 3600, (elapsed_time % 3600 // 60), elapsed_time % 60) )
 
 	return df_insee_urban_features
