@@ -29,17 +29,17 @@ import os
 import osmnx
 import pandas as pd
 
-from urbansprawl.osm.osm_overpass import (create_buildings_gdf,
+from urbansprawl.osm.overpass import (create_buildings_gdf,
                                           create_building_parts_gdf,
                                           create_pois_gdf,
                                           create_landuse_gdf,
                                           retrieve_route_graph)
-from urbansprawl.osm.osm_utils import (sanity_check_height_tags,
+from urbansprawl.osm.utils import (sanity_check_height_tags,
                                        associate_structures)
-from urbansprawl.osm.osm_data import (classify_tag,
+from urbansprawl.osm.classification import (classify_tag,
                                       classify_activity_category,
                                       compute_landuse_inference)
-from urbansprawl.osm.osm_surface import compute_landuses_m2
+from urbansprawl.osm.surface import compute_landuses_m2
 
 # Columns of interest corresponding to OSM keys
 OSM_TAG_COLUMNS = [ "amenity", "landuse", "leisure", "shop", "man_made",
