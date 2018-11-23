@@ -21,7 +21,7 @@ tasks are visible at `localhost:8082` URL address.
 
 """
 
-from datetime import date
+from datetime import date, datetime as dt
 import geopandas as gpd
 import luigi
 import numpy as np
@@ -171,6 +171,9 @@ class GetData(luigi.Task):
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
     AAAA-MM-DDThhmm)
+    table : str
+        Type of data to retrieve (either `buildings`, `building-parts`, `pois`
+    or `land-uses`)
 
     """
     city = luigi.Parameter()
@@ -188,7 +191,7 @@ class GetData(luigi.Task):
     def output(self):
         output_path = define_filename(self.table,
                                       self.city,
-                                      self.date_query.isoformat(),
+                                      dt.date(self.date_query).isoformat(),
                                       self.datapath,
                                       self.geoformat)
         return luigi.LocalTarget(output_path)
@@ -281,7 +284,7 @@ class SanityCheck(luigi.Task):
     def output(self):
         output_path = define_filename("checked-" + self.table,
                                       self.city,
-                                      self.date_query.isoformat(),
+                                      dt.date(self.date_query).isoformat(),
                                       self.datapath,
                                       self.geoformat)
         return luigi.LocalTarget(output_path)
@@ -348,7 +351,7 @@ class GetClassifiedInfo(luigi.Task):
     def output(self):
         output_path = define_filename("classified-" + self.table,
                                       self.city,
-                                      self.date_query.isoformat(),
+                                      dt.date(self.date_query).isoformat(),
                                       self.datapath,
                                       self.geoformat)
         return luigi.LocalTarget(output_path)
@@ -425,7 +428,7 @@ class SetupProjection(luigi.Task):
     def output(self):
         output_path = define_filename("reprojected-" + self.table,
                                       self.city,
-                                      self.date_query.isoformat(),
+                                      dt.date(self.date_query).isoformat(),
                                       self.datapath,
                                       self.geoformat)
         return luigi.LocalTarget(output_path)
@@ -471,7 +474,6 @@ class InferLandUse(luigi.Task):
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
-    srid = luigi.Parameter(default=4326)
 
     def requires(self):
         return {"buildings": SetupProjection(self.city, self.datapath,
@@ -484,7 +486,7 @@ class InferLandUse(luigi.Task):
     def output(self):
         output_path = define_filename("infered-buildings",
                                       self.city,
-                                      self.date_query.isoformat(),
+                                      dt.date(self.date_query).isoformat(),
                                       self.datapath,
                                       self.geoformat)
         return luigi.LocalTarget(output_path)
@@ -529,7 +531,6 @@ class ComputeLandUse(luigi.Task):
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
-    srid = luigi.Parameter(default=4326)
     default_height = luigi.Parameter(3)
     meters_per_level = luigi.Parameter(3)
 
@@ -548,7 +549,7 @@ class ComputeLandUse(luigi.Task):
     def output(self):
         output_path = define_filename("buildings-with-computed-land-use",
                                       self.city,
-                                      self.date_query.isoformat(),
+                                      dt.date(self.date_query).isoformat(),
                                       self.datapath,
                                       self.geoformat)
         return luigi.LocalTarget(output_path)
@@ -610,7 +611,6 @@ class GetRouteGraph(luigi.Task):
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
-    srid = luigi.Parameter(default=4326)
 
     def requires(self):
         return GetBoundingBox(self.city, self.datapath)
@@ -664,7 +664,7 @@ class GetIndiceGrid(luigi.Task):
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
-    date_query = luigi.DateMinuteParameter(default=date.today())
+    date_query = luigi.DateParameter(default=date.today())
 
     def requires(self):
         return GetBoundingBox(self.city, self.datapath)
@@ -718,7 +718,6 @@ class MasterTask(luigi.Task):
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
-    srid = luigi.Parameter(default=4326)
     default_height = luigi.Parameter(default=3)
     meters_per_level = luigi.Parameter(default=3)
 
