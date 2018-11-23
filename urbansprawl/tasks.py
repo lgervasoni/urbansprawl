@@ -638,6 +638,54 @@ class GetRouteGraph(luigi.Task):
         city_gdf.to_file(self.output().path, driver="GeoJSON")
 
 
+class GetIndiceGrid(luigi.Task):
+    """Get the indice grid, regarding the area of interest
+
+    Example
+    -------
+    ```
+    python -m luigi --local-scheduler --module urbansprawl.tasks MasterTask
+    --city valence-drome --date-query 2017-01-01T1200
+    ̀``
+
+    Attributes
+    ----------
+    city : str
+        City of interest
+    datapath : str
+        Indicates the folder where the task result has to be serialized
+    geoformat : str
+        Output file extension (by default: `GeoJSON`)
+    date_query : str
+        Date to which the OpenStreetMap data must be recovered (format:
+    AAAA-MM-DDThhmm)
+
+    """
+    city = luigi.Parameter()
+    datapath = luigi.Parameter("./data")
+    geoformat = luigi.Parameter("geojson")
+    date_query = luigi.DateMinuteParameter(default=date.today())
+
+    def requires(self):
+        return GetBoundingBox(self.city, self.datapath)
+
+    def output(self):
+        output_path = define_filename("indice-grid",
+                                      self.city,
+                                      self.date_query.isoformat(),
+                                      self.datapath,
+                                      self.geoformat)
+        return luigi.LocalTarget(output_path)
+
+    def run(self):
+        city_gdf = gpd.read_file(self.input().path)
+        north, south, east, west = city_gdf.loc[0, ["bbox_north", "bbox_south",
+                                                    "bbox_east", "bbox_west"]]
+        ### MODIFY core.get_indices_grid signature (bounding box)
+        indices = city_gdf
+        indices.to_file(self.output().path, driver="GeoJSON")
+
+
 class MasterTask(luigi.Task):
     """Generic task that launches every final task
 
