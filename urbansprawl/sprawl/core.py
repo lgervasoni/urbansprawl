@@ -15,7 +15,7 @@ from .accessibility import compute_grid_accessibility
 from .dispersion import compute_grid_dispersion
 
 def get_indices_grid(df_osm_built, df_osm_building_parts, df_osm_pois, step=100):
-	""" 
+	"""
 	Creates an input geodataframe with points sampled in a regular grid
 
 	Parameters
@@ -36,23 +36,47 @@ def get_indices_grid(df_osm_built, df_osm_building_parts, df_osm_pois, step=100)
 	"""
 	# Get bounding box
 	west, south, east, north = pd.concat( [ df_osm_built, df_osm_building_parts, df_osm_pois ], sort=False ).total_bounds
+	return get_indices_grid_from_bbox([west, south, east, north],
+                                          step,
+                                          df_osm_built.crs)
+
+
+def get_indices_grid_from_bbox(bounding_box, step=100, crs={"init":"epsg:4326"}):
+	"""
+	Creates an input geodataframe with points sampled in a regular grid
+
+	Parameters
+	----------
+        bounding_box : list
+            Geographical coordinates in which one has to build the grid
+	step : int
+	    Step to sample the regular grid in meters
+
+	Returns
+	----------
+	geopandas.GeoDataFrame
+		regular grid
+	"""
+	# Get bounding box
+	west, south, east, north = bounding_box
 	# Create indices
 	df_indices = gpd.GeoDataFrame( [ Point(i,j) for i in np.arange(west, east, step) for j in np.arange(south, north, step) ], columns=["geometry"] )
 	# Set projection
-	df_indices.crs = df_osm_built.crs
+	df_indices.crs = crs
 	return df_indices
+
 
 def process_spatial_indices(city_ref=None, region_args={"polygon":None, "place":None, "which_result":1, "point":None, "address":None, "distance":None, "north":None, "south":None, "east":None, "west":None},
 			grid_step = 100,
 			process_osm_args = {"retrieve_graph":True, "default_height":3, "meters_per_level":3, "associate_landuses_m2":True, "minimum_m2_building_area":9, "date":None},
 			dispersion_args = {'radius_search': 750, 'use_median': False, 'K_nearest': 50},
 			landusemix_args = {'walkable_distance': 600, 'compute_activity_types_kde': True, 'weighted_kde': True, 'pois_weight': 9, 'log_weighted': True},
-			accessibility_args = {'fixed_distance': True, 'fixed_activities': False, 'max_edge_length': 200, 'max_node_distance': 250, 
+			accessibility_args = {'fixed_distance': True, 'fixed_activities': False, 'max_edge_length': 200, 'max_node_distance': 250,
 				'fixed_distance_max_travel_distance': 2000, 'fixed_distance_max_num_activities': 250, 'fixed_activities_min_number': 20},
 			indices_computation = {"dispersion":True, "landusemix":True, "accessibility":True} ):
 	"""
 	Process sprawling indices for an input region of interest
-	1) OSM data is retrieved and processed. 
+	1) OSM data is retrieved and processed.
 		If the city name has already been processed, locally stored data will be loaded
 	2) A regular grid is created where indices will be calculated
 	3) Sprawling indices are calculated and returned
@@ -70,7 +94,7 @@ def process_spatial_indices(city_ref=None, region_args={"polygon":None, "place":
 			place : string or dict
 				query string or structured query dict to geocode/download
 			which_result : int
-				result number to retrieve from geocode/download when using query string 
+				result number to retrieve from geocode/download when using query string
 			point : tuple
 				the (lat, lon) central point around which to construct the region
 			address : string
@@ -141,7 +165,7 @@ def process_spatial_indices(city_ref=None, region_args={"polygon":None, "place":
 	Returns
 	----------
 	gpd.GeoDataFrame
-		returns the regular grid with the indicated sprawling indices	
+		returns the regular grid with the indicated sprawling indices
 	"""
 	try:
 		# Process OSM data
@@ -152,10 +176,10 @@ def process_spatial_indices(city_ref=None, region_args={"polygon":None, "place":
 		if (not ( indices_computation.get("accessibility") or indices_computation.get("landusemix") or indices_computation.get("dispersion") ) ):
 			log("Not computing any spatial indices")
 			return None
-		
+
 		# Get indices grid
 		df_indices = get_indices_grid(df_osm_built, df_osm_building_parts, df_osm_pois, grid_step)
-		
+
 		# Compute sprawling indices
 		if (indices_computation.get("accessibility")):
 			compute_grid_accessibility(df_indices, G, df_osm_built, df_osm_pois, accessibility_args)
@@ -163,7 +187,7 @@ def process_spatial_indices(city_ref=None, region_args={"polygon":None, "place":
 			compute_grid_landusemix(df_indices, df_osm_built, df_osm_pois, landusemix_args)
 		if (indices_computation.get("dispersion")):
 			compute_grid_dispersion(df_indices, df_osm_built, dispersion_args)
-		
+
 		return df_indices
 
 	except Exception as e:

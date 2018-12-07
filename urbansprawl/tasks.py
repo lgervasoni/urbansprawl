@@ -30,16 +30,17 @@ import osmnx
 import pandas as pd
 
 from urbansprawl.osm.overpass import (create_buildings_gdf,
-                                          create_building_parts_gdf,
-                                          create_pois_gdf,
-                                          create_landuse_gdf,
-                                          retrieve_route_graph)
+                                      create_building_parts_gdf,
+                                      create_pois_gdf,
+                                      create_landuse_gdf,
+                                      retrieve_route_graph)
 from urbansprawl.osm.utils import (sanity_check_height_tags,
-                                       associate_structures)
+                                   associate_structures)
 from urbansprawl.osm.classification import (classify_tag,
-                                      classify_activity_category,
-                                      compute_landuse_inference)
+                                            classify_activity_category,
+                                            compute_landuse_inference)
 from urbansprawl.osm.surface import compute_landuses_m2
+from urbansprawl.sprawl.core import get_indices_grid_from_bbox
 
 # Columns of interest corresponding to OSM keys
 OSM_TAG_COLUMNS = [ "amenity", "landuse", "leisure", "shop", "man_made",
@@ -403,15 +404,12 @@ class SetupProjection(luigi.Task):
     AAAA-MM-DDThhmm)
     table : str
         Structure of interest, either `buildings`, `building-parts` or `pois`
-    srid : int
-        Geographical projection (default 4326, *i.e.* WGS84)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
     table = luigi.Parameter(default="buildings")
-    srid = luigi.Parameter(default=4326)
 
     def requires(self):
         if self.table in ["buildings", "building-parts", "pois"]:
@@ -437,13 +435,10 @@ class SetupProjection(luigi.Task):
     def run(self):
         gdf = gpd.read_file(self.input().path)
 	### Project to UTM coordinates within the same zone
+        gdf = osmnx.project_gdf(gdf)
         if self.table == "buildings":
-            gdf = osmnx.project_gdf(gdf)
             gdf.drop(gdf[gdf.geometry.area < MINIMUM_M2_BUILDING_AREA].index,
                      inplace=True)
-        else:
-            gdf = osmnx.project_gdf(gdf,
-                                    to_crs={'init': "epsg:{}".format(self.srid)})
         gdf.to_file(self.output().path, driver="GeoJSON")
 
 
@@ -454,7 +449,7 @@ class InferLandUse(luigi.Task):
     Example:
     ```
     python -m luigi --local-scheduler --module urbansprawl.tasks InferLandUse
-    --city valence-drome --date-query 2017-01-01T1200 --srid 4326
+    --city valence-drome --date-query 2017-01-01T1200
     ```
 
     Attributes
@@ -468,8 +463,6 @@ class InferLandUse(luigi.Task):
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
     AAAA-MM-DDThhmm)
-    srid : int
-        Geographical projection (default 4326, *i.e.* WGS84)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
@@ -479,10 +472,10 @@ class InferLandUse(luigi.Task):
     def requires(self):
         return {"buildings": SetupProjection(self.city, self.datapath,
                                              self.geoformat, self.date_query,
-                                             "buildings", self.srid),
+                                             "buildings"),
                 "land-uses": SetupProjection(self.city, self.datapath,
                                              self.geoformat, self.date_query,
-                                             "land-uses", self.srid)}
+                                             "land-uses")}
 
     def output(self):
         output_path = define_filename("infered-buildings",
@@ -521,8 +514,6 @@ class ComputeLandUse(luigi.Task):
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
     AAAA-MM-DDThhmm)
-    srid : int
-        Geographical projection (default 4326, *i.e.* WGS84)
     default_height : int
         Default building height, in meters (default: 3 meters)
     meters_per_level : int
@@ -537,15 +528,14 @@ class ComputeLandUse(luigi.Task):
 
     def requires(self):
         return {"buildings": InferLandUse(self.city, self.datapath,
-                                          self.geoformat, self.date_query,
-                                          self.srid),
+                                          self.geoformat, self.date_query),
                 "building-parts": SetupProjection(self.city, self.datapath,
                                                   self.geoformat,
                                                   self.date_query,
-                                                  "building-parts", self.srid),
+                                                  "building-parts"),
                 "pois": SetupProjection(self.city, self.datapath,
                                         self.geoformat, self.date_query,
-                                        "pois", self.srid)}
+                                        "pois")}
 
     def output(self):
         output_path = define_filename("buildings-with-computed-land-use",
@@ -591,7 +581,7 @@ class GetRouteGraph(luigi.Task):
     Example:
     ```
     python -m luigi --local-scheduler --module urbansprawl.tasks GetRouteGraph
-    --city valence-drome --srid 4326
+    --city valence-drome
     ```
 
     Attributes
@@ -605,8 +595,6 @@ class GetRouteGraph(luigi.Task):
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
     AAAA-MM-DDThhmm)
-    srid : int
-        Geographical projection (default 4326, *i.e.* WGS84)
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
@@ -617,11 +605,7 @@ class GetRouteGraph(luigi.Task):
         return GetBoundingBox(self.city, self.datapath)
 
     def output(self):
-        output_path = define_filename("route-graph",
-                                      self.city,
-                                      self.date_query.isoformat(),
-                                      self.datapath,
-                                      self.geoformat)
+        output_path = os.path.join(self.datapath, self.city + '_network.graphml')
         return luigi.LocalTarget(output_path)
 
     def run(self):
@@ -631,12 +615,7 @@ class GetRouteGraph(luigi.Task):
         date = "[date:'" + str(self.date_query) + "']"
         retrieve_route_graph(self.city, date=date,
                              north=north, south=south,
-                             east=east, west=west,
-                             force_crs={'init': "epsg:{}".format(self.srid)})
-        # `retrieve_route_graph` does not return any result
-        # in order to consider the task as finished,
-        # we may save the bounding box as an output
-        city_gdf.to_file(self.output().path, driver="GeoJSON")
+                             east=east, west=west)
 
 
 class GetIndiceGrid(luigi.Task):
@@ -657,15 +636,15 @@ class GetIndiceGrid(luigi.Task):
         Indicates the folder where the task result has to be serialized
     geoformat : str
         Output file extension (by default: `GeoJSON`)
-    date_query : str
-        Date to which the OpenStreetMap data must be recovered (format:
     AAAA-MM-DDThhmm)
+    step : int
+        Distance (in meters) between each grid structuring points
 
     """
     city = luigi.Parameter()
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
-    date_query = luigi.DateParameter(default=date.today())
+    step = luigi.IntParameter(default=400)
 
     def requires(self):
         return GetBoundingBox(self.city, self.datapath)
@@ -673,17 +652,15 @@ class GetIndiceGrid(luigi.Task):
     def output(self):
         output_path = define_filename("indice-grid",
                                       self.city,
-                                      self.date_query.isoformat(),
+                                      self.step,
                                       self.datapath,
                                       self.geoformat)
         return luigi.LocalTarget(output_path)
 
     def run(self):
         city_gdf = gpd.read_file(self.input().path)
-        north, south, east, west = city_gdf.loc[0, ["bbox_north", "bbox_south",
-                                                    "bbox_east", "bbox_west"]]
-        ### MODIFY core.get_indices_grid signature (bounding box)
-        indices = city_gdf
+        bbox = osmnx.project_gdf(city_gdf).total_bounds
+        indices = get_indices_grid_from_bbox(bbox, self.step)
         indices.to_file(self.output().path, driver="GeoJSON")
 
 
@@ -693,7 +670,7 @@ class MasterTask(luigi.Task):
     Example:
     ```
     python -m luigi --local-scheduler --module urbansprawl.tasks MasterTask
-    --city valence-drome --date-query 2017-01-01T1200 --srid 4326
+    --city valence-drome --date-query 2017-01-01T1200
     --default-height 3 --meters-per-level 3
     ```
 
@@ -708,8 +685,6 @@ class MasterTask(luigi.Task):
     date_query : str
         Date to which the OpenStreetMap data must be recovered (format:
     AAAA-MM-DDThhmm)
-    srid : int
-        Geographical projection (default 4326, *i.e.* WGS84)
     default_height : int
         Default building height, in meters (default: 3 meters)
     meters_per_level : int
@@ -724,10 +699,10 @@ class MasterTask(luigi.Task):
 
     def requires(self):
         yield ComputeLandUse(self.city, self.datapath,
-                             self.geoformat, self.date_query, self.srid,
+                             self.geoformat, self.date_query,
                              self.default_height, self.meters_per_level)
         yield GetRouteGraph(self.city, self.datapath,
-                            self.geoformat, self.date_query, self.srid)
+                            self.geoformat, self.date_query)
 
     def complete(self):
         return False
