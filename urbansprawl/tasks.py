@@ -22,10 +22,14 @@ tasks are visible at `localhost:8082` URL address.
 """
 
 from datetime import date, datetime as dt
+import json
+import os
+import requests
+import zipfile
+
 import geopandas as gpd
 import luigi
 import numpy as np
-import os
 import osmnx
 import pandas as pd
 
@@ -45,6 +49,7 @@ from urbansprawl.sprawl.landusemix import compute_grid_landusemix
 from urbansprawl.sprawl.accessibility import compute_grid_accessibility
 from urbansprawl.sprawl.dispersion import compute_grid_dispersion
 
+
 # Columns of interest corresponding to OSM keys
 OSM_TAG_COLUMNS = [ "amenity", "landuse", "leisure", "shop", "man_made",
                     "building", "building:use", "building:part" ]
@@ -56,6 +61,7 @@ HEIGHT_TAGS = [ "min_height", "height", "min_level", "levels",
                 "building:levels", "building:levels:underground" ]
 BUILDING_PARTS_TO_FILTER = ["no", "roof"]
 MINIMUM_M2_BUILDING_AREA = 9.0
+
 
 def define_filename(description, city, date, datapath, extension):
     """Build a distinctive filename regarding a given `description`, `city`,
@@ -99,6 +105,7 @@ def set_list_as_str(l):
     """
     if type(l) == list:
         return ','.join(str(e) for e in l)
+
 
 def clean_list_in_geodataframe_column(gdf, column):
     """Stringify items of `column` within ̀gdf`, in order to allow its
@@ -194,7 +201,7 @@ class GetData(luigi.Task):
         return GetBoundingBox(self.city, self.datapath)
 
     def output(self):
-        output_path = define_filename(self.table,
+        output_path = define_filename("raw-" + self.table,
                                       self.city,
                                       dt.date(self.date_query).isoformat(),
                                       self.datapath,
@@ -442,6 +449,9 @@ class SetupProjection(luigi.Task):
         if self.table == "buildings":
             gdf.drop(gdf[gdf.geometry.area < MINIMUM_M2_BUILDING_AREA].index,
                      inplace=True)
+        proj_path = os.path.join(self.datapath, self.city, "utm_projection.json")
+        with open(proj_path, 'w') as fobj:
+            json.dump(gdf.crs, fobj)
         gdf.to_file(self.output().path, driver="GeoJSON")
 
 
@@ -491,6 +501,10 @@ class InferLandUse(luigi.Task):
     def run(self):
         buildings = gpd.read_file(self.input()["buildings"].path)
         land_uses = gpd.read_file(self.input()["land-uses"].path)
+        proj_path = os.path.join(self.datapath, self.city, "utm_projection.json")
+        with open(proj_path) as fobj:
+            buildings.crs = json.load(fobj)
+            land_uses.crs = json.load(fobj)
         compute_landuse_inference(buildings, land_uses)
         assert(len(buildings[buildings.key_value=={"inferred":"other"} ]) == 0)
         assert(len(buildings[buildings.classification.isnull()]) == 0)
@@ -549,9 +563,14 @@ class ComputeLandUse(luigi.Task):
         return luigi.LocalTarget(output_path)
 
     def run(self):
+        proj_path = os.path.join(self.datapath, self.city, "utm_projection.json")
         buildings = gpd.read_file(self.input()["buildings"].path)
         building_parts = gpd.read_file(self.input()["building-parts"].path)
         pois = gpd.read_file(self.input()["pois"].path)
+        with open(proj_path) as fobj:
+            buildings.crs = json.load(fobj)
+            building_parts.crs = json.load(fobj)
+            pois.crs = json.load(fobj)
         associate_structures(buildings, building_parts,
                              operation='contains', column='containing_parts')
         associate_structures(buildings, pois,
