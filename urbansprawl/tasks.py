@@ -53,9 +53,9 @@ HEIGHT_TAGS = [ "min_height", "height", "min_level", "levels",
 BUILDING_PARTS_TO_FILTER = ["no", "roof"]
 MINIMUM_M2_BUILDING_AREA = 9.0
 
-def define_filename(description, city, date, datapath, geoformat):
+def define_filename(description, city, date, datapath, extension):
     """Build a distinctive filename regarding a given `description`, `city`,
-    `date` (ISO-formatted), ̀datapath` and a `geoformat` for the file extension
+    `date` (ISO-formatted), ̀datapath` and a `extension` for the file extension
 
     Parameters
     ----------
@@ -67,7 +67,7 @@ def define_filename(description, city, date, datapath, geoformat):
         Date of the Overpass query, in ISO format
     datapath : str
         Path of the file on the file system
-    geoformat : str
+    extension : str
         File extension, *i.e.* GeoJSON
 
     Returns
@@ -76,8 +76,9 @@ def define_filename(description, city, date, datapath, geoformat):
         Full path name on the file system
     """
     os.makedirs(datapath, exist_ok=True)
-    filename = "{}-{}.{}".format(description, date, geoformat)
+    filename = "{}-{}.{}".format(description, date, extension)
     return os.path.join(datapath, city, filename)
+
 
 def set_list_as_str(l):
     """Small utility function to transform list in string
