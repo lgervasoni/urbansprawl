@@ -41,6 +41,9 @@ from urbansprawl.osm.classification import (classify_tag,
                                             compute_landuse_inference)
 from urbansprawl.osm.surface import compute_landuses_m2
 from urbansprawl.sprawl.core import get_indices_grid_from_bbox
+from urbansprawl.sprawl.landusemix import compute_grid_landusemix
+from urbansprawl.sprawl.accessibility import compute_grid_accessibility
+from urbansprawl.sprawl.dispersion import compute_grid_dispersion
 
 # Columns of interest corresponding to OSM keys
 OSM_TAG_COLUMNS = [ "amenity", "landuse", "leisure", "shop", "man_made",
@@ -662,6 +665,514 @@ class GetIndiceGrid(luigi.Task):
         bbox = osmnx.project_gdf(city_gdf).total_bounds
         indices = get_indices_grid_from_bbox(bbox, self.step)
         indices.to_file(self.output().path, driver="GeoJSON")
+
+
+class ComputeGridLandUseMix(luigi.Task):
+    """Compute land use mix indice values for a specific city on a set of
+    grided points
+
+    Attributes
+    ----------
+    city : str
+        City of interest
+    datapath : str
+        Indicates the folder where the task result has to be serialized
+    geoformat : str
+        Output file extension (by default: `GeoJSON`)
+    date_query : str
+        Date to which the OpenStreetMap data must be recovered (format:
+    AAAA-MM-DDThhmm)
+    step : int
+        Distance (in meters) between each grid structuring points
+    walkable_distance : int
+            the bandwidth assumption for Kernel Density Estimation calculations
+    (meters)
+    compute_activity_types_kde : bool
+            determines if the densities for each activity type should be
+    computed
+    weighted_kde : bool
+            use Weighted Kernel Density Estimation or classic version
+    pois_weight : int
+            Points of interest weight equivalence with buildings (squared
+    meter)
+    log_weighted : bool
+            apply natural logarithmic function to surface weights
+
+    """
+    city = luigi.Parameter()
+    datapath = luigi.Parameter("./data")
+    geoformat = luigi.Parameter("geojson")
+    date_query = luigi.DateMinuteParameter(default=date.today())
+    step = luigi.IntParameter(default=400)
+    default_height = luigi.Parameter(3)
+    meters_per_level = luigi.Parameter(3)
+    walkable_distance = luigi.IntParameter(600)
+    compute_activity_types_kd = luigi.BoolParameter()
+    weighted_kde = luigi.BoolParameter()
+    pois_weights = luigi.IntParameter(9)
+    log_weighted = luigi.BoolParameter()
+
+    def requires(self):
+        return {"grid": GetIndiceGrid(self.city, self.datapath,
+                                      self.geoformat, self.step),
+         "buildings": ComputeLandUse(self.city, self.datapath,
+                                     self.geoformat, self.date_query,
+                                     self.default_height,
+                                     self.meters_per_level),
+         "pois": SetupProjection(self.city, self.datapath,
+                                 self.geoformat, self.date_query, "pois")}
+
+    def output(self):
+        data_ident = str(self.step) + "-" + dt.date(self.date_query).isoformat()
+        output_path = define_filename("gridded-indices-land-use",
+                                      self.city,
+                                      data_ident,
+                                      self.datapath,
+                                      self.geoformat)
+        return luigi.LocalTarget(output_path)
+
+    def run(self):
+        grid = gpd.read_file(self.input()["grid"].path)
+        buildings = gpd.read_file(self.input()["buildings"].path)
+        pois = gpd.read_file(self.input()["pois"].path)
+        landusemix_args = {'walkable_distance': self.walkable_distance,
+                           'compute_activity_types_kde': self.compute_activity_types_kd,
+                           'weighted_kde': self.weighted_kde,
+                           'pois_weight': self.pois_weights,
+                           'log_weighted': self.log_weighted}
+        compute_grid_landusemix(grid, buildings, pois, landusemix_args)
+        grid.to_file(self.output().path, driver="GeoJSON")
+
+
+class PlotLandUseMix(luigi.Task):
+    """Plot land use mix indices, depending on the gridded land use mix
+    analysis undertaken in `city` area, at date `date_query`
+
+    Attributes
+    ----------
+    city : str
+        City of interest
+    datapath : str
+        Indicates the folder where the task result has to be serialized
+    geoformat : str
+        Output file extension (by default: `GeoJSON`)
+    date_query : str
+        Date to which the OpenStreetMap data must be recovered (format:
+    AAAA-MM-DDThhmm)
+    step : int
+        Distance (in meters) between each grid structuring points
+    walkable_distance : int
+            the bandwidth assumption for Kernel Density Estimation calculations
+    (meters)
+    compute_activity_types_kde : bool
+            determines if the densities for each activity type should be
+    computed
+    weighted_kde : bool
+            use Weighted Kernel Density Estimation or classic version
+    pois_weight : int
+            Points of interest weight equivalence with buildings (squared
+    meter)
+    log_weighted : bool
+            apply natural logarithmic function to surface weights
+    plotted_feature : str
+        Dimension to plot, either `activity_pdf`, `residential_pdf`,
+    `landusemix` or `landuse_intensity`. May also be
+    `commercial/industrial_pdf`, `shop_pdf` or `leisure/amenity_pdf` if
+    detailed activity have been required (`compute_activity_types_kd` is True).
+
+    """
+    city = luigi.Parameter()
+    datapath = luigi.Parameter("./data")
+    geoformat = luigi.Parameter("geojson")
+    date_query = luigi.DateMinuteParameter(default=date.today())
+    step = luigi.IntParameter(default=400)
+    default_height = luigi.Parameter(3)
+    meters_per_level = luigi.Parameter(3)
+    walkable_distance = luigi.IntParameter(600)
+    compute_activity_types_kd = luigi.BoolParameter()
+    weighted_kde = luigi.BoolParameter()
+    pois_weights = luigi.IntParameter(9)
+    log_weighted = luigi.BoolParameter()
+    plotted_feature = luigi.Parameter()
+
+    def requires(self):
+        return {"grid": ComputeGridLandUseMix(self.city, self.datapath,
+                                              self.geoformat,
+                                              self.date_query,
+                                              self.step,
+                                              self.default_height,
+                                              self.meters_per_level,
+                                              self.walkable_distance,
+                                              self.compute_activity_types_kd,
+                                              self.weighted_kde,
+                                              self.pois_weights,
+                                              self.log_weighted),
+                "graph": GetRouteGraph(self.city, self.datapath,
+                                       self.geoformat, self.date_query)}
+
+    def output(self):
+        data_ident = str(self.step) + "-" + dt.date(self.date_query).isoformat()
+        output_path = define_filename("gridded-indices-land-use-"
+                                      + f"{self.plotted_feature}",
+                                      self.city,
+                                      data_ident,
+                                      self.datapath,
+                                      "png")
+        return luigi.LocalTarget(output_path)
+
+    def run(self):
+        grid_land_use = gpd.read_file(self.input()["grid"].path)
+        valid_features = grid_land_use.columns.tolist()
+        valid_features.remove("geometry")
+        if not self.plotted_feature in valid_features:
+            raise ValueError("Choose a valid feature to plot amongst"
+                             f" {valid_features}")
+        graph = osmnx.load_graphml(self.input()["graph"].path, folder="")
+        figsize=(8, 8)
+        fig, ax = osmnx.plot_graph(graph,
+                                   fig_height=figsize[1],
+                                   fig_width=figsize[0],
+                                   close=False,
+                                   show=False,
+                                   edge_color='black',
+                                   edge_alpha=0.3,
+                                   node_alpha=0.1)
+        ax.set_title(f"{self.plotted_feature} kernel density (0: low, 1: high)")
+        grid_land_use.plot(self.plotted_feature, cmap='YlOrRd', ax=ax, legend=True)
+        fig.savefig(self.output().path)
+
+
+class ComputeGridAccessibility(luigi.Task):
+    """
+
+    Attributes
+    ----------
+    city : str
+        City of interest
+    datapath : str
+        Indicates the folder where the task result has to be serialized
+    geoformat : str
+        Output file extension (by default: `GeoJSON`)
+    date_query : str
+        Date to which the OpenStreetMap data must be recovered (format:
+    AAAA-MM-DDThhmm)
+    step : int
+        Distance (in meters) between each grid structuring points
+    walkable_distance : int
+            the bandwidth assumption for Kernel Density Estimation calculations
+    (meters)
+    compute_activity_types_kde : bool
+            determines if the densities for each activity type should be
+    computed
+    weighted_kde : bool
+            use Weighted Kernel Density Estimation or classic version
+    pois_weight : int
+            Points of interest weight equivalence with buildings (squared
+    meter)
+    log_weighted : bool
+            apply natural logarithmic function to surface weights
+
+    """
+    city = luigi.Parameter()
+    datapath = luigi.Parameter("./data")
+    geoformat = luigi.Parameter("geojson")
+    date_query = luigi.DateMinuteParameter(default=date.today())
+    step = luigi.IntParameter(default=400)
+    default_height = luigi.Parameter(3)
+    meters_per_level = luigi.Parameter(3)
+    fixed_distance = luigi.BoolParameter() # True
+    fixed_activities = luigi.BoolParameter() # False
+    max_edge_length = luigi.IntParameter(200)
+    max_node_distance = luigi.IntParameter(250)
+    fixed_distance_max_travel_distance = luigi.IntParameter(2000)
+    fixed_distance_max_num_activities = luigi.IntParameter(250)
+    fixed_activities_min_number = luigi.IntParameter(20)
+
+    def requires(self):
+        return {"grid": GetIndiceGrid(self.city, self.datapath,
+                                      self.geoformat, self.step),
+                "buildings": ComputeLandUse(self.city, self.datapath,
+                                            self.geoformat, self.date_query,
+                                            self.default_height,
+                                            self.meters_per_level),
+                "pois": SetupProjection(self.city, self.datapath,
+                                        self.geoformat, self.date_query,
+                                        "pois"),
+                "graph": GetRouteGraph(self.city, self.datapath,
+                                       self.geoformat, self.date_query)}
+
+    def output(self):
+        data_ident = str(self.step) + "-" + dt.date(self.date_query).isoformat()
+        output_path = define_filename("gridded-indices-accessibility",
+                                      self.city,
+                                      data_ident,
+                                      self.datapath,
+                                      self.geoformat)
+        return luigi.LocalTarget(output_path)
+
+    def run(self):
+        grid = gpd.read_file(self.input()["grid"].path)
+        graph = osmnx.load_graphml(self.input()["graph"].path, folder="")
+        buildings = gpd.read_file(self.input()["buildings"].path)
+        pois = gpd.read_file(self.input()["pois"].path)
+        accessibility_args = {'fixed_distance': self.fixed_distance,
+                              'fixed_activities': self.fixed_activities,
+                              'max_edge_length': self.max_edge_length,
+                              'max_node_distance': self.max_node_distance,
+			      'fixed_distance_max_travel_distance': self.fixed_distance_max_travel_distance,
+                              'fixed_distance_max_num_activities': self.fixed_distance_max_num_activities,
+                              'fixed_activities_min_number': self.fixed_activities_min_number}
+        compute_grid_accessibility(grid, graph, buildings, pois,
+                                   accessibility_args)
+        grid.to_file(self.output().path, driver="GeoJSON")
+
+
+class PlotAccessibility(luigi.Task):
+    """Plot an accessibility indice, depending on the gridded land use mix
+    analysis undertaken in `city` area, at date `date_query`
+
+    Attributes
+    ----------
+    city : str
+        City of interest
+    datapath : str
+        Indicates the folder where the task result has to be serialized
+    geoformat : str
+        Output file extension (by default: `GeoJSON`)
+    date_query : str
+        Date to which the OpenStreetMap data must be recovered (format:
+    AAAA-MM-DDThhmm)
+    step : int
+        Distance (in meters) between each grid structuring points
+    walkable_distance : int
+            the bandwidth assumption for Kernel Density Estimation calculations
+    (meters)
+    compute_activity_types_kde : bool
+            determines if the densities for each activity type should be
+    computed
+    weighted_kde : bool
+            use Weighted Kernel Density Estimation or classic version
+    pois_weight : int
+            Points of interest weight equivalence with buildings (squared
+    meter)
+    log_weighted : bool
+            apply natural logarithmic function to surface weights
+
+    """
+    city = luigi.Parameter()
+    datapath = luigi.Parameter("./data")
+    geoformat = luigi.Parameter("geojson")
+    date_query = luigi.DateMinuteParameter(default=date.today())
+    step = luigi.IntParameter(default=400)
+    default_height = luigi.Parameter(3)
+    meters_per_level = luigi.Parameter(3)
+    fixed_distance = luigi.BoolParameter() # True
+    fixed_activities = luigi.BoolParameter() # False
+    max_edge_length = luigi.IntParameter(200)
+    max_node_distance = luigi.IntParameter(250)
+    fixed_distance_max_travel_distance = luigi.IntParameter(2000)
+    fixed_distance_max_num_activities = luigi.IntParameter(250)
+    fixed_activities_min_number = luigi.IntParameter(20)
+
+    def requires(self):
+        return {"grid": ComputeGridAccessibility(self.city, self.datapath,
+                                                 self.geoformat,
+                                                 self.date_query,
+                                                 self.step,
+                                                 self.default_height,
+                                                 self.meters_per_level,
+                                                 self.fixed_distance,
+                                                 self.fixed_activities,
+                                                 self.max_edge_length,
+                                                 self.max_node_distance,
+                                                 self.fixed_distance_max_travel_distance,
+                                                 self.fixed_distance_max_num_activities,
+                                                 self.fixed_activities_min_number),
+                "graph": GetRouteGraph(self.city, self.datapath,
+                                       self.geoformat, self.date_query)}
+
+    def output(self):
+        data_ident = str(self.step) + "-" + dt.date(self.date_query).isoformat()
+        output_path = define_filename("gridded-indices-accessibility",
+                                      self.city,
+                                      data_ident,
+                                      self.datapath,
+                                      "png")
+        return luigi.LocalTarget(output_path)
+
+    def run(self):
+        grid_accessibility = gpd.read_file(self.input()["grid"].path)
+        graph = osmnx.load_graphml(self.input()["graph"].path, folder="")
+        fig, ax = osmnx.plot_graph(graph,
+                                   fig_height=8,
+                                   fig_width=8,
+                                   close=False,
+                                   show=False,
+                                   edge_color='black',
+                                   edge_alpha=0.3,
+                                   node_alpha=0.1)
+        ax.set_title("Accessibility (measured as the number of accessible POIs)")
+        grid_accessibility.plot("accessibility",
+                                cmap='YlOrRd',
+                                ax=ax,
+                                legend=True,
+                                vmin=0,
+                                vmax=self.fixed_distance_max_num_activities)
+        fig.tight_layout()
+        fig.savefig(self.output().path)
+
+
+class ComputeGridDispersion(luigi.Task):
+    """Compute land use mix indice values for a specific city on a set of
+    grided points
+
+    Attributes
+    ----------
+    city : str
+        City of interest
+    datapath : str
+        Indicates the folder where the task result has to be serialized
+    geoformat : str
+        Output file extension (by default: `GeoJSON`)
+    date_query : str
+        Date to which the OpenStreetMap data must be recovered (format:
+    AAAA-MM-DDThhmm)
+    step : int
+        Distance (in meters) between each grid structuring points
+    walkable_distance : int
+            the bandwidth assumption for Kernel Density Estimation calculations
+    (meters)
+    compute_activity_types_kde : bool
+            determines if the densities for each activity type should be
+    computed
+    weighted_kde : bool
+            use Weighted Kernel Density Estimation or classic version
+    pois_weight : int
+            Points of interest weight equivalence with buildings (squared
+    meter)
+    log_weighted : bool
+            apply natural logarithmic function to surface weights
+
+    """
+    city = luigi.Parameter()
+    datapath = luigi.Parameter("./data")
+    geoformat = luigi.Parameter("geojson")
+    date_query = luigi.DateMinuteParameter(default=date.today())
+    step = luigi.IntParameter(default=400)
+    default_height = luigi.Parameter(3)
+    meters_per_level = luigi.Parameter(3)
+    radius_search = luigi.IntParameter(750)
+    use_median = luigi.BoolParameter() # False
+    K_nearest = luigi.IntParameter(50)
+
+    def requires(self):
+        return {"grid": GetIndiceGrid(self.city, self.datapath,
+                                      self.geoformat, self.step),
+                "buildings": ComputeLandUse(self.city, self.datapath,
+                                            self.geoformat, self.date_query,
+                                            self.default_height,
+                                            self.meters_per_level)}
+
+    def output(self):
+        data_ident = str(self.step) + "-" + dt.date(self.date_query).isoformat()
+        output_path = define_filename("gridded-indices-dispersion",
+                                      self.city,
+                                      data_ident,
+                                      self.datapath,
+                                      self.geoformat)
+        return luigi.LocalTarget(output_path)
+
+    def run(self):
+        grid = gpd.read_file(self.input()["grid"].path)
+        buildings = gpd.read_file(self.input()["buildings"].path)
+        dispersion_args = {'radius_search': self.radius_search,
+                           'use_median': self.use_median,
+                           'K_nearest': self.K_nearest}
+        compute_grid_dispersion(grid, buildings, dispersion_args)
+        grid.to_file(self.output().path, driver="GeoJSON")
+
+
+class PlotDispersion(luigi.Task):
+    """Plot a dispersion indice, depending on the gridded land use mix
+    analysis undertaken in `city` area, at date `date_query`
+
+    Attributes
+    ----------
+    city : str
+        City of interest
+    datapath : str
+        Indicates the folder where the task result has to be serialized
+    geoformat : str
+        Output file extension (by default: `GeoJSON`)
+    date_query : str
+        Date to which the OpenStreetMap data must be recovered (format:
+    AAAA-MM-DDThhmm)
+    step : int
+        Distance (in meters) between each grid structuring points
+    walkable_distance : int
+            the bandwidth assumption for Kernel Density Estimation calculations
+    (meters)
+    compute_activity_types_kde : bool
+            determines if the densities for each activity type should be
+    computed
+    weighted_kde : bool
+            use Weighted Kernel Density Estimation or classic version
+    pois_weight : int
+            Points of interest weight equivalence with buildings (squared
+    meter)
+    log_weighted : bool
+            apply natural logarithmic function to surface weights
+
+    """
+    city = luigi.Parameter()
+    datapath = luigi.Parameter("./data")
+    geoformat = luigi.Parameter("geojson")
+    date_query = luigi.DateMinuteParameter(default=date.today())
+    step = luigi.IntParameter(default=400)
+    default_height = luigi.Parameter(3)
+    meters_per_level = luigi.Parameter(3)
+    radius_search = luigi.IntParameter(750)
+    use_median = luigi.BoolParameter() # False
+    K_nearest = luigi.IntParameter(50)
+
+    def requires(self):
+        return {"grid": ComputeGridDispersion(self.city, self.datapath,
+                                              self.geoformat,
+                                              self.date_query,
+                                              self.step,
+                                              self.default_height,
+                                              self.meters_per_level,
+                                              self.radius_search,
+                                              self.use_median,
+                                              self.K_nearest),
+                "graph": GetRouteGraph(self.city, self.datapath,
+                                       self.geoformat, self.date_query)}
+
+    def output(self):
+        data_ident = str(self.step) + "-" + dt.date(self.date_query).isoformat()
+        output_path = define_filename("gridded-indices-dispersion",
+                                      self.city,
+                                      data_ident,
+                                      self.datapath,
+                                      "png")
+        return luigi.LocalTarget(output_path)
+
+    def run(self):
+        grid_dispersion = gpd.read_file(self.input()["grid"].path)
+        graph = osmnx.load_graphml(self.input()["graph"].path, folder="")
+        fig, ax = osmnx.plot_graph(graph,
+                                   fig_height=8,
+                                   fig_width=8,
+                                   close=False,
+                                   show=False,
+                                   edge_color='black',
+                                   edge_alpha=0.3,
+                                   node_alpha=0.1)
+        ax.set_title("Dispersion (averaged distance between buildings, in meters)")
+        grid_dispersion.plot("dispersion", cmap='YlOrRd', ax=ax,
+                             legend=True, vmin=0, vmax=10)
+        fig.tight_layout()
+        fig.savefig(self.output().path)
 
 
 class MasterTask(luigi.Task):
