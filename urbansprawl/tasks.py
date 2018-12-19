@@ -29,9 +29,11 @@ import zipfile
 
 import geopandas as gpd
 import luigi
+from luigi.format import MixedUnicodeBytes
 import numpy as np
 import osmnx
 import pandas as pd
+import sh
 
 from urbansprawl.osm.overpass import (create_buildings_gdf,
                                       create_building_parts_gdf,
@@ -48,7 +50,7 @@ from urbansprawl.sprawl.core import get_indices_grid_from_bbox
 from urbansprawl.sprawl.landusemix import compute_grid_landusemix
 from urbansprawl.sprawl.accessibility import compute_grid_accessibility
 from urbansprawl.sprawl.dispersion import compute_grid_dispersion
-
+from urbansprawl.population.data_extract import get_extract_population_data
 
 # Columns of interest corresponding to OSM keys
 OSM_TAG_COLUMNS = [ "amenity", "landuse", "leisure", "shop", "man_made",
@@ -1194,15 +1196,177 @@ class PlotDispersion(luigi.Task):
         fig.savefig(self.output().path)
 
 
-class MasterTask(luigi.Task):
-    """Generic task that launches every final task
+class GetINSEEData(luigi.Task):
+    """
+    INSEE data access:
 
-    Example:
-    ```
-    python -m luigi --local-scheduler --module urbansprawl.tasks MasterTask
-    --city valence-drome --date-query 2017-01-01T1200
-    --default-height 3 --meters-per-level 3
-    ```
+    https://www.insee.fr/fr/statistiques/fichier/2520034/200m-carreaux-metropole.zip
+
+    GPW data access:
+
+    http://sedac.ciesin.columbia.edu/downloads/data/gpw-v4/gpw-v4-population-count-rev10/gpw-v4-population-count-rev10_2015_30_sec_tif.zip
+
+    Attributes
+    ----------
+    datapath : str
+        Path to the data folder on the file system
+    """
+    datapath = luigi.Parameter("./data")
+
+    @property
+    def path(self):
+        return os.path.join(
+            self.datapath, "insee", '200m-carreaux-metropole.zip'
+        )
+
+    @property
+    def url(self):
+        return "https://www.insee.fr/fr/statistiques/fichier/2520034/200m-carreaux-metropole.zip"
+
+    def output(self):
+        return luigi.LocalTarget(self.path, format=MixedUnicodeBytes)
+
+    def run(self):
+        with self.output().open('w') as fobj:
+            resp = requests.get(self.url)
+            resp.raise_for_status()
+            fobj.write(resp.content)
+
+
+class UnzipINSEEData(luigi.Task):
+    """Task dedicated to unzip file
+
+    To get trace that the task has be done, the task creates a text file with
+    the same same of the input zip file with the '.done' suffix. This generated
+    file contains the path of the zipfile and all extracted files.
+
+    Attributes
+    ----------
+    datapath : str
+        Path to the data folder on the file system
+    """
+    datapath = luigi.Parameter("./data")
+
+    @property
+    def path(self):
+        return os.path.join(
+            self.datapath, "insee", '200m-carreaux-metropole.zip'
+        )
+
+    def requires(self):
+        return GetINSEEData(self.datapath)
+
+    def output(self):
+        filepath = os.path.join(self.datapath, "insee", "unzip.done")
+        return luigi.LocalTarget(filepath)
+
+    def run(self):
+        with self.output().open('w') as fobj:
+            zip_ref = zipfile.ZipFile(self.path)
+            fobj.write("\n".join(elt.filename for elt in zip_ref.filelist))
+            fobj.write("\n")
+            zip_ref.extractall(os.path.dirname(self.input().path))
+            zip_ref.close()
+
+
+
+class StoreINSEEGridAsShapefile(luigi.Task):
+    """Store image labels to a database, considering that the input format is
+    MapInfo. We use `ogr2ogr` program, and consider the task as accomplished
+    after saving a `txt` file within insee data folder.
+
+    Attributes
+    ----------
+    datapath : str
+        Path towards the data on the file system
+
+    """
+    datapath = luigi.Parameter("./data")
+    
+    def requires(self):
+        return UnzipINSEEData(self.datapath)
+
+    def output(self):
+        filepath = os.path.join(
+            self.datapath, "insee", "200m-carreaux-metropole", "insee_car.shp"
+        )
+        return luigi.LocalTarget(filepath)
+
+    def run(self):
+        input_filename = os.path.join(
+            self.datapath, "insee", "200m-carreaux-metropole", "car_m.mif"
+        )
+        ogr2ogr_args = ["-f", "ESRI Shapefile",
+                        self.output().path,
+                        input_filename,
+                        "-s_srs", "EPSG:27572",
+                        "-t_srs", "EPSG:4326"]
+        sh.ogr2ogr(ogr2ogr_args)
+
+
+class ExtractLocalINSEEData(luigi.Task):
+    """
+    Attributes
+    ----------
+    city : str
+        City of interest
+    datapath : str
+        Indicates the folder where the task result has to be serialized
+    geoformat : str
+        Output file extension (by default: `GeoJSON`)
+    date_query : str
+        Date to which the OpenStreetMap data must be recovered (format:
+    AAAA-MM-DDThhmm)
+    default_height : int
+        Default building height, in meters (default: 3 meters)
+    meters_per_level : int
+        Default height per level, in meter (default: 3 meters)
+    """
+    city = luigi.Parameter()
+    datapath = luigi.Parameter("./data")
+    geoformat = luigi.Parameter("geojson")
+    date_query = luigi.DateMinuteParameter(default=date.today())
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
+
+    def requires(self):
+        return {"data": UnzipINSEEData(self.datapath),
+                "grid": StoreINSEEGridAsShapefile(self.datapath),
+                "buildings": ComputeLandUse(self.city, self.datapath,
+                                            self.geoformat, self.date_query,
+                                            self.default_height,
+                                            self.meters_per_level)}
+
+    def output(self):
+        filepath = os.path.join(
+            self.datapath, self.city, "insee_population.geojson"
+        )
+        return luigi.LocalTarget(filepath)
+
+    def run(self):
+        buildings = gpd.read_file(self.input()["buildings"].path)
+        proj_path = os.path.join(
+            self.datapath, self.city, "utm_projection.json"
+        )
+        insee_data_filename = self.input()["grid"].path
+        population_count_filename = os.path.join(
+            self.datapath, "insee", "200m-carreaux-metropole", "car_m.dbf"
+        )
+        with open(proj_path) as fobj:
+            buildings.crs = json.load(fobj)
+        local_insee_pop = get_extract_population_data(
+            city_ref=self.city,
+            data_source="insee",
+            pop_shapefile="./data/insee/bkp/carr_pop4326.shp",
+            pop_data_file=population_count_filename,
+            to_crs=buildings.crs,
+            polygons_gdf=buildings
+            )
+        local_insee_pop.to_file(self.output().path, driver="GeoJSON")
+
+
+class PlotINSEEData(luigi.Task):
+    """
 
     Attributes
     ----------
@@ -1224,15 +1388,38 @@ class MasterTask(luigi.Task):
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
-    default_height = luigi.Parameter(default=3)
-    meters_per_level = luigi.Parameter(default=3)
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
 
     def requires(self):
-        yield ComputeLandUse(self.city, self.datapath,
-                             self.geoformat, self.date_query,
-                             self.default_height, self.meters_per_level)
-        yield GetRouteGraph(self.city, self.datapath,
-                            self.geoformat, self.date_query)
+        return {"population": ExtractLocalINSEEData(self.city, self.datapath,
+                                                    self.geoformat,
+                                                    self.date_query,
+                                                    self.default_height,
+                                                    self.meters_per_level),
+                "graph": GetRouteGraph(self.city, self.datapath,
+                                       self.geoformat, self.date_query)}
 
-    def complete(self):
-        return False
+    def output(self):
+        filepath = os.path.join(
+            self.datapath, self.city, "insee_population.png"
+        )
+        return luigi.LocalTarget(filepath)
+
+    def run(self):
+        population = gpd.read_file(self.input()["population"].path)
+        graph = osmnx.load_graphml(self.input()["graph"].path, folder="")
+        proj_path = os.path.join(
+            self.datapath, self.city, "utm_projection.json"
+        )
+        with open(proj_path) as fobj:
+            population.crs = json.load(fobj)
+        figsize=(8, 8)
+        fig, ax = osmnx.plot_graph(
+            graph, fig_height=figsize[1], fig_width=figsize[0], close=False,
+            show=False, edge_color='black', edge_alpha=0.15, node_alpha=0.05
+        )
+        population.plot("pop_count", ax=ax, cmap='YlOrRd', legend=True)
+        ax.set_title("INSEE gridded population (in inhabitants)", fontsize=15)
+        fig.tight_layout()
+        fig.savefig(self.output().path)
