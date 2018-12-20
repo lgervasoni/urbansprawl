@@ -540,8 +540,8 @@ class ComputeLandUse(luigi.Task):
     datapath = luigi.Parameter("./data")
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
-    default_height = luigi.Parameter(3)
-    meters_per_level = luigi.Parameter(3)
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
 
     def requires(self):
         return {"buildings": InferLandUse(self.city, self.datapath,
@@ -723,8 +723,8 @@ class ComputeGridLandUseMix(luigi.Task):
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
     step = luigi.IntParameter(default=400)
-    default_height = luigi.Parameter(3)
-    meters_per_level = luigi.Parameter(3)
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
     walkable_distance = luigi.IntParameter(600)
     compute_activity_types_kd = luigi.BoolParameter()
     weighted_kde = luigi.BoolParameter()
@@ -805,8 +805,8 @@ class PlotLandUseMix(luigi.Task):
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
     step = luigi.IntParameter(default=400)
-    default_height = luigi.Parameter(3)
-    meters_per_level = luigi.Parameter(3)
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
     walkable_distance = luigi.IntParameter(600)
     compute_activity_types_kd = luigi.BoolParameter()
     weighted_kde = luigi.BoolParameter()
@@ -897,8 +897,8 @@ class ComputeGridAccessibility(luigi.Task):
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
     step = luigi.IntParameter(default=400)
-    default_height = luigi.Parameter(3)
-    meters_per_level = luigi.Parameter(3)
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
     fixed_distance = luigi.BoolParameter() # True
     fixed_activities = luigi.BoolParameter() # False
     max_edge_length = luigi.IntParameter(200)
@@ -983,8 +983,8 @@ class PlotAccessibility(luigi.Task):
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
     step = luigi.IntParameter(default=400)
-    default_height = luigi.Parameter(3)
-    meters_per_level = luigi.Parameter(3)
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
     fixed_distance = luigi.BoolParameter() # True
     fixed_activities = luigi.BoolParameter() # False
     max_edge_length = luigi.IntParameter(200)
@@ -1078,8 +1078,8 @@ class ComputeGridDispersion(luigi.Task):
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
     step = luigi.IntParameter(default=400)
-    default_height = luigi.Parameter(3)
-    meters_per_level = luigi.Parameter(3)
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
     radius_search = luigi.IntParameter(750)
     use_median = luigi.BoolParameter() # False
     K_nearest = luigi.IntParameter(50)
@@ -1148,8 +1148,8 @@ class PlotDispersion(luigi.Task):
     geoformat = luigi.Parameter("geojson")
     date_query = luigi.DateMinuteParameter(default=date.today())
     step = luigi.IntParameter(default=400)
-    default_height = luigi.Parameter(3)
-    meters_per_level = luigi.Parameter(3)
+    default_height = luigi.IntParameter(3)
+    meters_per_level = luigi.IntParameter(3)
     radius_search = luigi.IntParameter(750)
     use_median = luigi.BoolParameter() # False
     K_nearest = luigi.IntParameter(50)
