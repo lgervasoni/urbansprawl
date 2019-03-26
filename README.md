@@ -25,9 +25,10 @@ This situation brings new challenges on how to conceive cities that host such am
 * GIS output: easy to integrate with other GIS frameworks.
 * Potential missing data: still few data exist for some regions in the world.
 
+**Disclaimer:** This package is no longer maintained
 
 **For more details, refer to:**
-
+* Gervasoni Luciano, 2018. "[Contributions to the formalization and implementation of spatial urban indices using open data : application to urban sprawl studies](https://tel.archives-ouvertes.fr/tel-02077356)." Computers and Society [cs.CY]. Université Grenoble Alpes, 2018.
 * Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2016. "[A framework for evaluating urban land use mix from crowd-sourcing data](https://hal.inria.fr/hal-01396792)." 2nd International Workshop on Big Data for Sustainable Development (IEEE Big Data 2016).
 * Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2017. "[LUM_OSM: une plateforme pour l'évaluation de la mixité urbaine à partir de données participatives](https://hal.inria.fr/hal-01548341)." GAST Workshop, Conférence Extraction et Gestion de Connaissances (EGC 2017).
 * Gervasoni Luciano, Bosch Martí, Fenet Serge, and Sturm Peter. 2017. "[Calculating spatial urban sprawl indices using open data](https://hal.inria.fr/hal-01535469)." 15th International Conference on Computers in Urban Planning and Urban Management (CUPUM 2017).
