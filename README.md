@@ -25,7 +25,7 @@ This situation brings new challenges on how to conceive cities that host such am
 * GIS output: easy to integrate with other GIS frameworks.
 * Potential missing data: still few data exist for some regions in the world.
 
-**Disclaimer:** This package is no longer maintained
+**Disclaimer:** This package is no longer maintained.
 
 **For more details, refer to:**
 * Gervasoni Luciano, 2018. "[Contributions to the formalization and implementation of spatial urban indices using open data : application to urban sprawl studies](https://tel.archives-ouvertes.fr/tel-02077356)." Computers and Society [cs.CY]. Université Grenoble Alpes, 2018.
